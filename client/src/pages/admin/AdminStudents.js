@@ -1,0 +1,14 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../../api';
+import DashboardLayout from '../../components/DashboardLayout';
+export default function AdminStudents() {
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    useEffect(() => { api.adminStudents().then(setStudents).finally(() => setLoading(false)); }, []);
+    const filtered = students.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.email.toLowerCase().includes(search.toLowerCase()));
+    return (_jsx(DashboardLayout, { title: `Students (${students.length})`, subtitle: "Manage all enrolled students.", actions: _jsx("input", { placeholder: "Search students...", value: search, onChange: e => setSearch(e.target.value), style: { padding: '8px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#fff', fontSize: '0.84rem', outline: 'none', width: 200 } }), children: loading ? _jsx("div", { className: "loading-center", children: _jsx("span", { className: "spinner" }) }) : (_jsx("div", { className: "table-wrap", children: _jsxs("table", { children: [_jsx("thead", { children: _jsxs("tr", { children: [_jsx("th", { children: "Student" }), _jsx("th", { children: "Phone" }), _jsx("th", { children: "Enrollments" }), _jsx("th", { children: "Certs" }), _jsx("th", { children: "Joined" }), _jsx("th", {})] }) }), _jsx("tbody", { children: filtered.map(s => (_jsxs("tr", { children: [_jsx("td", { children: _jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 10 }, children: [_jsx("div", { style: { width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#1a6b3c,#c9a84c)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, flexShrink: 0 }, children: s.name[0] }), _jsxs("div", { children: [_jsx("div", { style: { fontWeight: 600, fontSize: '0.9rem' }, children: s.name }), _jsx("div", { style: { color: '#9a9a9a', fontSize: '0.78rem' }, children: s.email }), s.studentId && _jsx("div", { style: { color: '#c9a84c', fontSize: '0.72rem', fontFamily: 'monospace' }, children: s.studentId })] })] }) }), _jsx("td", { style: { color: '#9a9a9a', fontSize: '0.84rem' }, children: s.phone || '—' }), _jsx("td", { children: _jsx("span", { className: "badge badge-gold", children: s.enrollments.length }) }), _jsx("td", { children: _jsx("span", { className: "badge badge-green", children: s.certificates.length }) }), _jsx("td", { style: { color: '#9a9a9a', fontSize: '0.82rem' }, children: new Date(s.createdAt).toLocaleDateString() }), _jsx("td", { children: _jsx(Link, { to: `/admin/students/${s.id}`, className: "btn btn-outline btn-sm", children: "View" }) })] }, s.id))) })] }) })) }));
+}

@@ -1,0 +1,25 @@
+{
+  "name": "afrifx-academy-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "db:push": "npx prisma db push",
+    "db:seed": "node src/utils/seed.js",
+    "db:studio": "npx prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "googleapis": "^173.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
+    "nodemailer": "^9.0.1",
+    "pdf-lib": "^1.17.1",
+    "prisma": "^5.22.0",
+    "qrcode": "^1.5.4"
+  }
+}

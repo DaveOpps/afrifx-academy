@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Binary file storage (Postgres bytea) — replaces local-disk uploads so the app
+// works on hosts without a persistent filesystem (e.g. Render free tier).
+model FileBlob {
+  id        Int      @id @default(autoincrement())
+  filename  String
+  mimeType  String   @default("application/octet-stream")
+  data      Bytes
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  password     String
+  role         String        @default("student")
+  phone        String?
+  points       Int           @default(0)
+  studentId    String?       @unique
+  tier         String        @default("free")   // free | premium | vvip
+  signalSubUntil DateTime?                       // active monthly signal subscription expiry
+  resetToken   String?
+  resetExpiry  DateTime?
+  createdAt    DateTime      @default(now())
+  enrollments  Enrollment[]
+  progress     Progress[]
+  quizResults  QuizResult[]
+  certificates Certificate[]
+  reviews      Review[]
+  readAnnouncements AnnouncementRead[]
+  assignmentSubmits AssignmentSubmit[]
+}
+
+model Course {
+  id           Int          @id @default(autoincrement())
+  title        String
+  description  String
+  thumbnail    String?
+  category     String       @default("Beginner")
+  createdAt    DateTime     @default(now())
+  modules      Module[]
+  enrollments  Enrollment[]
+  certificates Certificate[]
+  reviews      Review[]
+}
+
+model Module {
+  id       Int      @id @default(autoincrement())
+  courseId Int
+  title    String
+  order    Int      @default(0)
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  quizzes     Quiz[]
+  assignments Assignment[]
+}
+
+model Lesson {
+  id          Int        @id @default(autoincrement())
+  moduleId    Int
+  title       String
+  videoUrl    String
+  duration    String?
+  description String?
+  order       Int        @default(0)
+  module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress    Progress[]
+  resources   Resource[]
+}
+
+model Resource {
+  id       Int    @id @default(autoincrement())
+  lessonId Int
+  title    String
+  fileUrl  String
+  type     String @default("pdf")
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model Enrollment {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  courseId    Int
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id])
+  course      Course    @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model Progress {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  lessonId  Int
+  watchedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId])
+}
+
+model Quiz {
+  id        Int          @id @default(autoincrement())
+  moduleId  Int
+  questions String
+  module    Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  results   QuizResult[]
+}
+
+model QuizResult {
+  id      Int      @id @default(autoincrement())
+  userId  Int
+  quizId  Int
+  score   Int
+  takenAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id])
+  quiz    Quiz     @relation(fields: [quizId], references: [id])
+}
+
+model Certificate {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  courseId   Int
+  issuedAt   DateTime @default(now())
+  fileUrl    String?
+  verifyCode String?  @unique
+  user       User     @relation(fields: [userId], references: [id])
+  course     Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model Signal {
+  id        Int      @id @default(autoincrement())
+  pair      String
+  type      String   @default("Forex")
+  direction String
+  entry     String
+  stopLoss  String
+  tp1       String
+  tp2       String?
+  tp3       String?
+  status    String   @default("active")
+  result    String?
+  pips      Float?
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  courseId  Int
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model Announcement {
+  id        Int                @id @default(autoincrement())
+  title     String
+  body      String
+  pinned    Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  reads     AnnouncementRead[]
+}
+
+model AnnouncementRead {
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  announcementId Int
+  readAt         DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id])
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, announcementId])
+}
+
+model Meeting {
+  id              Int      @id @default(autoincrement())
+  title           String
+  description     String?
+  startTime       DateTime
+  endTime         DateTime
+  meetLink        String
+  calendarEventId String?
+  hostId          Int
+  hostName        String
+  courseId        Int?
+  createdAt       DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model Application {
+  id        Int      @id @default(autoincrement())
+  type      String   // ib | seminar
+  name      String
+  email     String
+  phone     String?
+  data      String   // JSON blob of type-specific answers
+  status    String   @default("new")  // new | reviewed | approved | declined
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  amount    Float
+  currency  String   @default("USD")
+  purpose   String   // signal_sub | vvip | premium
+  method    String   @default("mock")
+  status    String   @default("paid")
+  createdAt DateTime @default(now())
+}
+
+model Assignment {
+  id          Int                  @id @default(autoincrement())
+  moduleId    Int
+  title       String
+  description String
+  dueDate     DateTime?
+  module      Module               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  submissions AssignmentSubmit[]
+}
+
+model AssignmentSubmit {
+  id           Int        @id @default(autoincrement())
+  assignmentId Int
+  userId       Int
+  content      String
+  fileUrl      String?
+  grade        Int?
+  feedback     String?
+  submittedAt  DateTime   @default(now())
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([assignmentId, userId])
+}

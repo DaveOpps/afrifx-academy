@@ -1,0 +1,14 @@
+{
+  "name": "afrifx-academy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AfriFX Academy — Forex education platform (React + Express + Prisma + Postgres)",
+  "scripts": {
+    "build": "cd client && npm install --include=dev && npm run build && cd ../server && npm install && npx prisma generate && npx prisma db push --accept-data-loss",
+    "start": "cd server && node src/index.js",
+    "seed": "cd server && node src/utils/seed.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

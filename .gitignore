@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build output
+client/dist/
+client/.vite/
+
+# Env / secrets
+.env
+*/.env
+.env.local
+*/.env.local
+
+# Local SQLite db (legacy — now using Postgres)
+*.db
+*.db-journal
+server/prisma/*.db
+server/prisma/dev.db
+
+# Legacy local file storage (now stored in the DB)
+server/uploads/
+server/certs/
+
+# Logs / misc
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
