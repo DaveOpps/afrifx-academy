@@ -75,6 +75,16 @@ export default function Trade() {
 
   const fmtP = (p: number | null) => p == null ? '—' : p.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
   const stepLot = (d: number) => setLots(Math.max(0.01, Math.round((lots + d) * 100) / 100));
+
+  // Pip distance + $ value of an SL/TP level on an existing position/order, measured from its entry price.
+  const measureLevel = (row: { symbol: string; lots: number; entryPrice: number }, level: number) => {
+    const m = insts.find(i => i.symbol === row.symbol);
+    if (!m) return null;
+    const units = row.lots * m.contract;
+    let cash = Math.abs(level - row.entryPrice) * units;
+    if (m.usdBase) cash = cash / level;
+    return { pips: Math.abs(level - row.entryPrice) / m.pip, cash };
+  };
   const stepPrice = (cur: string, set: (v: string) => void, dir: number) => {
     if (refPrice == null || !meta) return;
     const base = cur === '' ? refPrice : Number(cur);
@@ -139,7 +149,7 @@ export default function Trade() {
     finally { setBusy(false); }
   }
 
-  async function modify(p: Pos) {
+  async function modify(p: Pos | Pending) {
     const nsl = prompt(`Stop Loss price for ${p.display} (leave blank for none):`, p.sl != null ? String(p.sl) : '');
     if (nsl === null) return;
     const ntp = prompt(`Take Profit price for ${p.display} (leave blank for none):`, p.tp != null ? String(p.tp) : '');
@@ -320,8 +330,8 @@ export default function Trade() {
                       <td style={td}>{p.lots}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{p.price ?? '—'}</td>
-                      <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{p.sl ?? '—'}</td>
-                      <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{p.tp ?? '—'}</td>
+                      <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{sltpCell(p, p.sl, measureLevel)}</td>
+                      <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
                       <td style={{ ...td, color: upDown(p.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(p.pnl)}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
                         <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
@@ -349,9 +359,12 @@ export default function Trade() {
                       <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side === 'buy' ? 'Buy' : 'Sell'} {p.orderType === 'limit' ? 'Limit' : 'Stop'}</td>
                       <td style={td}>{p.lots}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
-                      <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{p.sl ?? '—'}</td>
-                      <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{p.tp ?? '—'}</td>
-                      <td style={td}><button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel</button></td>
+                      <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{sltpCell(p, p.sl, measureLevel)}</td>
+                      <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                        <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
+                        <button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -400,6 +413,24 @@ const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', backgroun
 const tbl: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' };
 const th: React.CSSProperties = { textAlign: 'left', padding: '6px 10px', color: '#9a9a9a', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: 1 };
 const td: React.CSSProperties = { padding: '9px 10px', color: '#e6e6e6' };
+
+// Renders an SL/TP table cell: the price, plus its pip distance and $ value
+// measured from the trade's entry price (so you can see the real risk/reward
+// on a position you've already opened, not just while setting it up).
+function sltpCell(
+  row: { symbol: string; lots: number; entryPrice: number },
+  level: number | null,
+  measure: (row: { symbol: string; lots: number; entryPrice: number }, level: number) => { pips: number; cash: number } | null
+) {
+  if (level == null) return '—';
+  const m = measure(row, level);
+  return (
+    <div>
+      <div>{level}</div>
+      {m && <div style={{ fontSize: '0.64rem', color: '#9a9a9a', fontFamily: 'inherit' }}>{m.pips.toFixed(1)}p · {money(m.cash)}</div>}
+    </div>
+  );
+}
 
 function StepBtn({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (

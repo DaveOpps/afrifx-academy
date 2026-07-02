@@ -214,12 +214,12 @@ router.post('/open', requireAuth, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// Modify SL/TP on an open position
+// Modify SL/TP on an open position OR a still-pending order
 router.post('/modify/:id', requireAuth, async (req, res) => {
   try {
     const trade = await prisma.paperTrade.findUnique({ where: { id: Number(req.params.id) } });
     if (!trade || trade.userId !== req.user.id) return res.status(404).json({ error: 'Position not found' });
-    if (trade.status !== 'open') return res.status(400).json({ error: 'Position already closed' });
+    if (trade.status !== 'open' && trade.status !== 'pending') return res.status(400).json({ error: 'Order already closed' });
 
     const { sl, tp } = req.body;
     const slN = sl === '' || sl == null ? null : Number(sl);
