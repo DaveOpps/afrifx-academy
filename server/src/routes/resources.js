@@ -6,7 +6,8 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 // In-memory upload — file bytes are persisted to the database (FileBlob),
 // not the local disk, so uploads survive on hosts without persistent storage.
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+// 4 MB cap keeps uploads/downloads under Vercel's serverless body limit (~4.5 MB).
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 4 * 1024 * 1024 } });
 
 const router = Router();
 
