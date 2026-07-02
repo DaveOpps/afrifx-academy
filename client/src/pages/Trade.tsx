@@ -233,9 +233,9 @@ export default function Trade() {
               <div>
                 <label style={lbl}>Order price (trigger)</label>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  <StepBtn onClick={() => stepPrice(orderPrice, setOrderPrice, -1)}>–</StepBtn>
-                  <input type="number" step="any" placeholder={fmtP(price)} value={orderPrice} onChange={e => setOrderPrice(e.target.value)} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
-                  <StepBtn onClick={() => stepPrice(orderPrice, setOrderPrice, 1)}>+</StepBtn>
+                  <StepBtn onClick={() => stepPrice(orderPrice, setOrderPrice, -1)} narrow>–</StepBtn>
+                  <input type="number" step="any" placeholder={fmtP(price)} value={orderPrice} onChange={e => setOrderPrice(e.target.value)} className="no-spin" style={priceInp} />
+                  <StepBtn onClick={() => stepPrice(orderPrice, setOrderPrice, 1)} narrow>+</StepBtn>
                 </div>
               </div>
             )}
@@ -259,17 +259,17 @@ export default function Trade() {
               <div>
                 <label style={lbl}>Stop Loss</label>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  <StepBtn onClick={() => stepPrice(sl, setSl, -1)}>–</StepBtn>
-                  <input type="number" step="any" placeholder="—" value={sl} onChange={e => setSl(e.target.value)} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
-                  <StepBtn onClick={() => stepPrice(sl, setSl, 1)}>+</StepBtn>
+                  <StepBtn onClick={() => stepPrice(sl, setSl, -1)} narrow>–</StepBtn>
+                  <input type="number" step="any" placeholder="—" value={sl} onChange={e => setSl(e.target.value)} className="no-spin" style={priceInp} />
+                  <StepBtn onClick={() => stepPrice(sl, setSl, 1)} narrow>+</StepBtn>
                 </div>
               </div>
               <div>
                 <label style={lbl}>Take Profit</label>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  <StepBtn onClick={() => stepPrice(tp, setTp, -1)}>–</StepBtn>
-                  <input type="number" step="any" placeholder="—" value={tp} onChange={e => setTp(e.target.value)} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
-                  <StepBtn onClick={() => stepPrice(tp, setTp, 1)}>+</StepBtn>
+                  <StepBtn onClick={() => stepPrice(tp, setTp, -1)} narrow>–</StepBtn>
+                  <input type="number" step="any" placeholder="—" value={tp} onChange={e => setTp(e.target.value)} className="no-spin" style={priceInp} />
+                  <StepBtn onClick={() => stepPrice(tp, setTp, 1)} narrow>+</StepBtn>
                 </div>
               </div>
             </div>
@@ -403,13 +403,21 @@ export default function Trade() {
         </p>
       </div>
 
-      <style>{`@media (max-width: 820px){ .tr-grid { grid-template-columns: 1fr !important; } }`}</style>
+      <style>{`
+        @media (max-width: 820px){ .tr-grid { grid-template-columns: 1fr !important; } }
+        input.no-spin::-webkit-outer-spin-button, input.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input.no-spin { -moz-appearance: textfield; }
+      `}</style>
     </PageShell>
   );
 }
 
 const lbl: React.CSSProperties = { display: 'block', fontSize: '0.68rem', color: '#9a9a9a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5 };
 const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', background: '#141418', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: '#fff', fontSize: '0.9rem' };
+// Wider price field for the SL/TP/order-price steppers — flexes to fill the space
+// between the –/+ buttons instead of the cramped fixed-width box the native
+// number input's spinner arrows used to leave.
+const priceInp: React.CSSProperties = { ...inp, flex: 1, minWidth: 0, textAlign: 'center', padding: '9px 6px', fontSize: '0.95rem', fontWeight: 700 };
 const tbl: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' };
 const th: React.CSSProperties = { textAlign: 'left', padding: '6px 10px', color: '#9a9a9a', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: 1 };
 const td: React.CSSProperties = { padding: '9px 10px', color: '#e6e6e6' };
@@ -432,10 +440,10 @@ function sltpCell(
   );
 }
 
-function StepBtn({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+function StepBtn({ children, onClick, disabled, narrow }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; narrow?: boolean }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      style={{ padding: '7px 8px', minWidth: 40, background: '#141418', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 7, color: '#e6e6e6', fontSize: '0.8rem', fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1 }}>
+      style={{ padding: narrow ? '7px 10px' : '7px 8px', minWidth: narrow ? 30 : 40, flexShrink: 0, background: '#141418', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 7, color: '#e6e6e6', fontSize: narrow ? '1rem' : '0.8rem', fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1 }}>
       {children}
     </button>
   );
