@@ -38,7 +38,8 @@ export default function Markets() {
               scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
               height={560}
               config={{
-                autosize: true,
+                width: '100%',
+                height: 560,
                 symbol,
                 interval: 'D',
                 timezone: 'Etc/UTC',
@@ -61,7 +62,7 @@ export default function Markets() {
                 interval: '1D',
                 width: '100%',
                 isTransparent: true,
-                height: '100%',
+                height: 560,
                 symbol,
                 showIntervalTabs: true,
                 displayMode: 'single',

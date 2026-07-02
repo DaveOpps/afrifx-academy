@@ -16,7 +16,8 @@ const PAIRS = [
 export default function Markets() {
     const [symbol, setSymbol] = useState(PAIRS[0].tv);
     return (_jsxs(PageShell, { title: "Live Markets", subtitle: "Professional real-time charts, indicators and analysis \u2014 powered by TradingView.", children: [_jsxs("div", { style: { display: 'flex', flexDirection: 'column', gap: 20 }, children: [_jsx("div", { className: "card card-premium", children: _jsx("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap' }, children: PAIRS.map(p => (_jsx("button", { onClick: () => setSymbol(p.tv), className: `btn btn-sm ${symbol === p.tv ? 'btn-gold' : 'btn-outline'}`, children: p.label }, p.tv))) }) }), _jsxs("div", { style: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 20 }, className: "mk-grid", children: [_jsx("div", { className: "card card-premium", style: { padding: 8 }, children: _jsx(TradingViewWidget, { scriptSrc: "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js", height: 560, config: {
-                                        autosize: true,
+                                        width: '100%',
+                                        height: 560,
                                         symbol,
                                         interval: 'D',
                                         timezone: 'Etc/UTC',
@@ -31,7 +32,7 @@ export default function Markets() {
                                         interval: '1D',
                                         width: '100%',
                                         isTransparent: true,
-                                        height: '100%',
+                                        height: 560,
                                         symbol,
                                         showIntervalTabs: true,
                                         displayMode: 'single',
