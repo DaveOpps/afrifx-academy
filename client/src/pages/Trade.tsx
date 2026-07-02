@@ -11,7 +11,7 @@ const TV: Record<string, string> = {
   BTCUSD: 'BINANCE:BTCUSDT', ETHUSD: 'BINANCE:ETHUSDT',
 };
 
-interface Inst { symbol: string; display: string; dp: number; contract: number; usdBase: boolean; price: number | null; }
+interface Inst { symbol: string; display: string; dp: number; contract: number; usdBase: boolean; pip: number; price: number | null; }
 interface Acct { balance: number; usedMargin: number; available: number; openPnl: number; equity: number; openCount: number; }
 interface Pos { id: number; symbol: string; display: string; side: string; lots: number; stake: number; entryPrice: number; sl: number | null; tp: number | null; price: number | null; pnl: number | null; openedAt: string; }
 interface Hist { id: number; display: string; side: string; lots: number; entryPrice: number; exitPrice: number; pnl: number; closeReason: string | null; closedAt: string; }
@@ -41,6 +41,20 @@ export default function Trade() {
   const units = meta ? lots * meta.contract : 0;
   const notional = meta ? (meta.usdBase ? units : units * (price ?? 0)) : 0;
   const marginReq = notional / 100; // 1:100
+
+  // Pip distance + $ risk/reward for the SL/TP being entered (relative to live price).
+  const pnlAt = (level: number) => {
+    if (!meta || price == null) return 0;
+    let p = (level - price) * units * (side === 'buy' ? 1 : -1);
+    if (meta.usdBase) p = p / level;
+    return p;
+  };
+  const pipsAway = (level: number) => meta ? Math.abs(level - (price ?? 0)) / meta.pip : 0;
+  const slNum = sl === '' ? null : Number(sl);
+  const tpNum = tp === '' ? null : Number(tp);
+  const risk = slNum != null && !isNaN(slNum) ? Math.abs(pnlAt(slNum)) : null;
+  const reward = tpNum != null && !isNaN(tpNum) ? Math.abs(pnlAt(tpNum)) : null;
+  const rr = risk && reward ? reward / risk : null;
 
   const refresh = useCallback(async () => {
     try {
@@ -169,6 +183,14 @@ export default function Trade() {
                 <input type="number" step="any" placeholder="optional" value={tp} onChange={e => setTp(e.target.value)} style={inp} />
               </div>
             </div>
+
+            {(risk != null || reward != null) && (
+              <div style={{ fontSize: '0.74rem', display: 'flex', flexDirection: 'column', gap: 3, padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                {risk != null && <span style={{ color: 'var(--down)' }}>SL: {pipsAway(slNum!).toFixed(1)} pips · risk {money(risk)}</span>}
+                {reward != null && <span style={{ color: 'var(--up)' }}>TP: {pipsAway(tpNum!).toFixed(1)} pips · reward {money(reward)}</span>}
+                {rr != null && <span style={{ color: '#c9a84c' }}>Risk : Reward = 1 : {rr.toFixed(2)}</span>}
+              </div>
+            )}
 
             <div style={{ fontSize: '0.74rem', color: '#9a9a9a', display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span>Units: <b style={{ color: '#e6e6e6' }}>{units.toLocaleString()}</b></span>

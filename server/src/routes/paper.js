@@ -52,7 +52,7 @@ router.get('/instruments', requireAuth, async (_req, res) => {
       Object.entries(INSTRUMENTS).map(async ([symbol, i]) => {
         let price = null;
         try { price = await getPrice(symbol); } catch { /* ignore */ }
-        return { symbol, display: i.display, dp: i.dp, contract: i.contract, usdBase: !!i.usdBase, price };
+        return { symbol, display: i.display, dp: i.dp, contract: i.contract, usdBase: !!i.usdBase, pip: i.pip, price };
       })
     );
     res.json(list);

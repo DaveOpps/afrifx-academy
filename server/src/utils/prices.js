@@ -7,15 +7,17 @@
 //   contract = units per 1.00 lot (forex standard lot = 100,000; gold = 100 oz; crypto = 1 coin)
 //   usdBase  = true when USD is the BASE currency (USD/JPY, USD/CAD) — P&L must be
 //              converted from the quote currency back into USD.
+// pip = smallest quoted move used to measure distance (0.0001 for most FX,
+// 0.01 for JPY pairs, 0.1 for gold; crypto uses 1 "point" = $1).
 export const INSTRUMENTS = {
-  EURUSD: { display: 'EUR/USD', yahoo: 'EURUSD=X', dp: 5, contract: 100000 },
-  GBPUSD: { display: 'GBP/USD', yahoo: 'GBPUSD=X', dp: 5, contract: 100000 },
-  USDJPY: { display: 'USD/JPY', yahoo: 'JPY=X',    dp: 3, contract: 100000, usdBase: true },
-  AUDUSD: { display: 'AUD/USD', yahoo: 'AUDUSD=X', dp: 5, contract: 100000 },
-  USDCAD: { display: 'USD/CAD', yahoo: 'CAD=X',    dp: 5, contract: 100000, usdBase: true },
-  XAUUSD: { display: 'Gold',    yahoo: 'GC=F',     dp: 2, contract: 100 },
-  BTCUSD: { display: 'BTC/USD', yahoo: 'BTC-USD',  dp: 2, contract: 1 },
-  ETHUSD: { display: 'ETH/USD', yahoo: 'ETH-USD',  dp: 2, contract: 1 },
+  EURUSD: { display: 'EUR/USD', yahoo: 'EURUSD=X', dp: 5, contract: 100000, pip: 0.0001 },
+  GBPUSD: { display: 'GBP/USD', yahoo: 'GBPUSD=X', dp: 5, contract: 100000, pip: 0.0001 },
+  USDJPY: { display: 'USD/JPY', yahoo: 'JPY=X',    dp: 3, contract: 100000, usdBase: true, pip: 0.01 },
+  AUDUSD: { display: 'AUD/USD', yahoo: 'AUDUSD=X', dp: 5, contract: 100000, pip: 0.0001 },
+  USDCAD: { display: 'USD/CAD', yahoo: 'CAD=X',    dp: 5, contract: 100000, usdBase: true, pip: 0.0001 },
+  XAUUSD: { display: 'Gold',    yahoo: 'GC=F',     dp: 2, contract: 100, pip: 0.1 },
+  BTCUSD: { display: 'BTC/USD', yahoo: 'BTC-USD',  dp: 2, contract: 1, pip: 1 },
+  ETHUSD: { display: 'ETH/USD', yahoo: 'ETH-USD',  dp: 2, contract: 1, pip: 1 },
 };
 
 // Demo account default leverage, used only to size the margin requirement.
