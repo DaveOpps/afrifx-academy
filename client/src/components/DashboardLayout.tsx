@@ -48,6 +48,7 @@ const ADMIN_NAV = [
   { to: '/admin/students',      label: 'Students',     icon: 'users' },
   { to: '/admin/courses',       label: 'Courses',      icon: 'courses' },
   { to: '/admin/signals',       label: 'Signals',      icon: 'signals' },
+  { to: '/trade',               label: 'Paper Trading',icon: 'analytics' },
   { to: '/admin/meetings',      label: 'Meetings',     icon: 'meetings' },
   { to: '/admin/announcements', label: 'Announcements',icon: 'announce' },
   { to: '/admin/applications',  label: 'Applications', icon: 'users' },
