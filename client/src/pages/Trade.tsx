@@ -11,10 +11,12 @@ const TV: Record<string, string> = {
   BTCUSD: 'BINANCE:BTCUSDT', ETHUSD: 'BINANCE:ETHUSDT',
 };
 
-interface Inst { symbol: string; display: string; dp: number; price: number | null; }
+interface Inst { symbol: string; display: string; dp: number; contract: number; usdBase: boolean; price: number | null; }
 interface Acct { balance: number; usedMargin: number; available: number; openPnl: number; equity: number; openCount: number; }
-interface Pos { id: number; symbol: string; display: string; side: string; stake: number; leverage: number; entryPrice: number; price: number | null; pnl: number | null; openedAt: string; }
-interface Hist { id: number; display: string; side: string; stake: number; leverage: number; entryPrice: number; exitPrice: number; pnl: number; closedAt: string; }
+interface Pos { id: number; symbol: string; display: string; side: string; lots: number; stake: number; entryPrice: number; price: number | null; pnl: number | null; openedAt: string; }
+interface Hist { id: number; display: string; side: string; lots: number; entryPrice: number; exitPrice: number; pnl: number; closedAt: string; }
+
+const LOT_SIZES = [0.01, 0.05, 0.1, 0.5, 1, 2, 5];
 
 const money = (n: number | null | undefined) =>
   n == null ? '—' : (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -24,8 +26,7 @@ export default function Trade() {
   const [insts, setInsts] = useState<Inst[]>([]);
   const [symbol, setSymbol] = useState('EURUSD');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
-  const [stake, setStake] = useState('100');
-  const [leverage, setLeverage] = useState(10);
+  const [lots, setLots] = useState(0.1);
   const [acct, setAcct] = useState<Acct | null>(null);
   const [positions, setPositions] = useState<Pos[]>([]);
   const [history, setHistory] = useState<Hist[]>([]);
@@ -35,6 +36,9 @@ export default function Trade() {
   const meta = insts.find(i => i.symbol === symbol);
   const price = meta?.price ?? null;
   const dp = meta?.dp ?? 4;
+  const units = meta ? lots * meta.contract : 0;
+  const notional = meta ? (meta.usdBase ? units : units * (price ?? 0)) : 0;
+  const marginReq = notional / 100; // 1:100
 
   const refresh = useCallback(async () => {
     try {
@@ -57,7 +61,7 @@ export default function Trade() {
   async function openTrade() {
     setMsg(null); setBusy(true);
     try {
-      await api.paperOpen({ symbol, side, stake: Number(stake), leverage });
+      await api.paperOpen({ symbol, side, lots });
       setMsg({ t: 'ok', m: `${side.toUpperCase()} ${meta?.display} opened` });
       await refresh();
     } catch (e: any) { setMsg({ t: 'err', m: e.message }); }
@@ -133,19 +137,16 @@ export default function Trade() {
             </div>
 
             <div>
-              <label style={lbl}>Stake (margin, $)</label>
-              <input type="number" min={1} value={stake} onChange={e => setStake(e.target.value)} style={inp} />
-            </div>
-
-            <div>
-              <label style={lbl}>Leverage</label>
-              <select value={leverage} onChange={e => setLeverage(Number(e.target.value))} style={inp}>
-                {[1, 5, 10, 20, 50, 100].map(l => <option key={l} value={l}>{l}x</option>)}
+              <label style={lbl}>Lot size</label>
+              <select value={lots} onChange={e => setLots(Number(e.target.value))} style={inp}>
+                {LOT_SIZES.map(l => <option key={l} value={l}>{l} {l === 1 ? 'lot' : 'lots'}</option>)}
               </select>
             </div>
 
-            <div style={{ fontSize: '0.72rem', color: '#9a9a9a' }}>
-              Position size: <b style={{ color: '#c9a84c' }}>{money(Number(stake) * leverage)}</b>
+            <div style={{ fontSize: '0.74rem', color: '#9a9a9a', display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span>Units: <b style={{ color: '#e6e6e6' }}>{units.toLocaleString()}</b></span>
+              <span>Position value: <b style={{ color: '#e6e6e6' }}>{money(notional)}</b></span>
+              <span>Margin required: <b style={{ color: '#c9a84c' }}>{money(marginReq)}</b></span>
             </div>
 
             <button onClick={openTrade} disabled={busy || price == null}
@@ -166,14 +167,14 @@ export default function Trade() {
           {positions.length === 0 ? <p style={{ color: '#9a9a9a', margin: 0 }}>No open positions. Place a trade above to get started.</p> : (
             <div style={{ overflowX: 'auto' }}>
               <table style={tbl}>
-                <thead><tr>{['Instrument', 'Side', 'Stake', 'Lev', 'Entry', 'Current', 'P&L', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Instrument', 'Side', 'Lots', 'Margin', 'Entry', 'Current', 'P&L', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {positions.map(p => (
                     <tr key={p.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                       <td style={td}>{p.display}</td>
                       <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side.toUpperCase()}</td>
+                      <td style={td}>{p.lots}</td>
                       <td style={td}>{money(p.stake)}</td>
-                      <td style={td}>{p.leverage}x</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{p.price ?? '—'}</td>
                       <td style={{ ...td, color: upDown(p.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(p.pnl)}</td>
@@ -192,13 +193,13 @@ export default function Trade() {
             <h3 style={{ marginTop: 0 }}>Trade History</h3>
             <div style={{ overflowX: 'auto' }}>
               <table style={tbl}>
-                <thead><tr>{['Instrument', 'Side', 'Stake', 'Entry', 'Exit', 'P&L', 'Closed'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Instrument', 'Side', 'Lots', 'Entry', 'Exit', 'P&L', 'Closed'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {history.map(h => (
                     <tr key={h.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                       <td style={td}>{h.display}</td>
                       <td style={{ ...td, color: h.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{h.side.toUpperCase()}</td>
-                      <td style={td}>{money(h.stake)}</td>
+                      <td style={td}>{h.lots}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{h.entryPrice}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{h.exitPrice}</td>
                       <td style={{ ...td, color: upDown(h.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(h.pnl)}</td>

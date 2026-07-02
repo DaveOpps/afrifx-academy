@@ -250,7 +250,8 @@ model PaperTrade {
   symbol     String    // instrument key, e.g. "EURUSD"
   display    String    // "EUR/USD"
   side       String    // "buy" | "sell"
-  stake      Float     // margin committed for this position
+  lots       Float     @default(1)     // position size in lots
+  stake      Float     // margin committed for this position (USD)
   leverage   Int       @default(1)
   entryPrice Float
   exitPrice  Float?

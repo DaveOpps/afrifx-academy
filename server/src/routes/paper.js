@@ -1,19 +1,19 @@
 import { Router } from 'express';
 import { prisma } from '../utils/db.js';
 import { requireAuth } from '../middleware/auth.js';
-import { INSTRUMENTS, getPrice, computePnl } from '../utils/prices.js';
+import { INSTRUMENTS, getPrice, computePnl, marginRequired } from '../utils/prices.js';
 
 const router = Router();
 const STARTING_BALANCE = 10000;
 
-// List tradable instruments (with live prices)
+// List tradable instruments (with live prices + contract info for margin sizing)
 router.get('/instruments', requireAuth, async (_req, res) => {
   try {
     const list = await Promise.all(
       Object.entries(INSTRUMENTS).map(async ([symbol, i]) => {
         let price = null;
         try { price = await getPrice(symbol); } catch { /* ignore */ }
-        return { symbol, display: i.display, dp: i.dp, price };
+        return { symbol, display: i.display, dp: i.dp, contract: i.contract, usdBase: !!i.usdBase, price };
       })
     );
     res.json(list);
@@ -76,27 +76,28 @@ router.get('/history', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
-// Open a new position
+// Open a new position (lot-based)
 router.post('/open', requireAuth, async (req, res) => {
   try {
-    const { symbol, side, stake, leverage } = req.body;
+    const { symbol, side, lots } = req.body;
     const inst = INSTRUMENTS[symbol];
     if (!inst) return res.status(400).json({ error: 'Unknown instrument' });
     if (side !== 'buy' && side !== 'sell') return res.status(400).json({ error: 'Side must be buy or sell' });
-    const stakeN = Number(stake);
-    const levN = Math.max(1, Math.min(200, Number(leverage) || 1));
-    if (!(stakeN > 0)) return res.status(400).json({ error: 'Enter a valid stake amount' });
+    const lotsN = Number(lots);
+    if (!(lotsN > 0)) return res.status(400).json({ error: 'Enter a valid lot size' });
+
+    const entryPrice = await getPrice(symbol);
+    const margin = marginRequired(symbol, lotsN, entryPrice);
 
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     const open = await prisma.paperTrade.findMany({ where: { userId: req.user.id, status: 'open' } });
     const usedMargin = open.reduce((s, t) => s + t.stake, 0);
-    if (stakeN > user.paperBalance - usedMargin) {
-      return res.status(400).json({ error: 'Not enough available balance' });
+    if (margin > user.paperBalance - usedMargin) {
+      return res.status(400).json({ error: 'Not enough free margin for this lot size' });
     }
 
-    const entryPrice = await getPrice(symbol);
     const trade = await prisma.paperTrade.create({
-      data: { userId: req.user.id, symbol, display: inst.display, side, stake: stakeN, leverage: levN, entryPrice },
+      data: { userId: req.user.id, symbol, display: inst.display, side, lots: lotsN, stake: margin, entryPrice },
     });
     res.json(trade);
   } catch (e) { res.status(400).json({ error: e.message }); }
