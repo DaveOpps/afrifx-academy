@@ -11,6 +11,7 @@ client/.vite/
 */.env
 .env.local
 */.env.local
+CREDENTIALS-local.txt
 
 # Local SQLite db (legacy — now using Postgres)
 *.db
