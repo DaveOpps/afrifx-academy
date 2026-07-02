@@ -153,7 +153,8 @@ export const api = {
   paperAccount:     () => req('GET', '/paper/account'),
   paperPositions:   () => req('GET', '/paper/positions'),
   paperHistory:     () => req('GET', '/paper/history'),
-  paperOpen:  (b: { symbol: string; side: string; lots: number }) => req('POST', '/paper/open', b),
+  paperOpen:  (b: { symbol: string; side: string; lots: number; sl?: number | null; tp?: number | null }) => req('POST', '/paper/open', b),
+  paperModify: (id: number, b: { sl?: number | null; tp?: number | null }) => req('POST', `/paper/modify/${id}`, b),
   paperClose: (id: number) => req('POST', `/paper/close/${id}`),
   paperReset: () => req('POST', '/paper/reset'),
 };

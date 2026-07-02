@@ -13,8 +13,8 @@ const TV: Record<string, string> = {
 
 interface Inst { symbol: string; display: string; dp: number; contract: number; usdBase: boolean; price: number | null; }
 interface Acct { balance: number; usedMargin: number; available: number; openPnl: number; equity: number; openCount: number; }
-interface Pos { id: number; symbol: string; display: string; side: string; lots: number; stake: number; entryPrice: number; price: number | null; pnl: number | null; openedAt: string; }
-interface Hist { id: number; display: string; side: string; lots: number; entryPrice: number; exitPrice: number; pnl: number; closedAt: string; }
+interface Pos { id: number; symbol: string; display: string; side: string; lots: number; stake: number; entryPrice: number; sl: number | null; tp: number | null; price: number | null; pnl: number | null; openedAt: string; }
+interface Hist { id: number; display: string; side: string; lots: number; entryPrice: number; exitPrice: number; pnl: number; closeReason: string | null; closedAt: string; }
 
 const LOT_SIZES = [0.01, 0.05, 0.1, 0.5, 1, 2, 5];
 
@@ -27,6 +27,8 @@ export default function Trade() {
   const [symbol, setSymbol] = useState('EURUSD');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [lots, setLots] = useState(0.1);
+  const [sl, setSl] = useState('');
+  const [tp, setTp] = useState('');
   const [acct, setAcct] = useState<Acct | null>(null);
   const [positions, setPositions] = useState<Pos[]>([]);
   const [history, setHistory] = useState<Hist[]>([]);
@@ -54,15 +56,29 @@ export default function Trade() {
   useEffect(() => {
     if (!user) return;
     refresh(); loadHistory();
-    const t = setInterval(refresh, 5000); // live P&L
+    const t = setInterval(() => { refresh(); loadHistory(); }, 5000); // live P&L + catch SL/TP auto-closes
     return () => clearInterval(t);
   }, [user, refresh, loadHistory]);
 
   async function openTrade() {
     setMsg(null); setBusy(true);
     try {
-      await api.paperOpen({ symbol, side, lots });
+      await api.paperOpen({ symbol, side, lots, sl: sl === '' ? null : Number(sl), tp: tp === '' ? null : Number(tp) });
       setMsg({ t: 'ok', m: `${side.toUpperCase()} ${meta?.display} opened` });
+      setSl(''); setTp('');
+      await refresh();
+    } catch (e: any) { setMsg({ t: 'err', m: e.message }); }
+    finally { setBusy(false); }
+  }
+
+  async function modify(p: Pos) {
+    const nsl = prompt(`Stop Loss price for ${p.display} (leave blank for none):`, p.sl != null ? String(p.sl) : '');
+    if (nsl === null) return;
+    const ntp = prompt(`Take Profit price for ${p.display} (leave blank for none):`, p.tp != null ? String(p.tp) : '');
+    if (ntp === null) return;
+    setBusy(true); setMsg(null);
+    try {
+      await api.paperModify(p.id, { sl: nsl === '' ? null : Number(nsl), tp: ntp === '' ? null : Number(ntp) });
       await refresh();
     } catch (e: any) { setMsg({ t: 'err', m: e.message }); }
     finally { setBusy(false); }
@@ -143,6 +159,17 @@ export default function Trade() {
               </select>
             </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <label style={lbl}>Stop Loss</label>
+                <input type="number" step="any" placeholder="optional" value={sl} onChange={e => setSl(e.target.value)} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>Take Profit</label>
+                <input type="number" step="any" placeholder="optional" value={tp} onChange={e => setTp(e.target.value)} style={inp} />
+              </div>
+            </div>
+
             <div style={{ fontSize: '0.74rem', color: '#9a9a9a', display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span>Units: <b style={{ color: '#e6e6e6' }}>{units.toLocaleString()}</b></span>
               <span>Position value: <b style={{ color: '#e6e6e6' }}>{money(notional)}</b></span>
@@ -167,18 +194,22 @@ export default function Trade() {
           {positions.length === 0 ? <p style={{ color: '#9a9a9a', margin: 0 }}>No open positions. Place a trade above to get started.</p> : (
             <div style={{ overflowX: 'auto' }}>
               <table style={tbl}>
-                <thead><tr>{['Instrument', 'Side', 'Lots', 'Margin', 'Entry', 'Current', 'P&L', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Instrument', 'Side', 'Lots', 'Entry', 'Current', 'SL', 'TP', 'P&L', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {positions.map(p => (
                     <tr key={p.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                       <td style={td}>{p.display}</td>
                       <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side.toUpperCase()}</td>
                       <td style={td}>{p.lots}</td>
-                      <td style={td}>{money(p.stake)}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{p.price ?? '—'}</td>
+                      <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{p.sl ?? '—'}</td>
+                      <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{p.tp ?? '—'}</td>
                       <td style={{ ...td, color: upDown(p.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(p.pnl)}</td>
-                      <td style={td}><button onClick={() => close(p.id)} disabled={busy} className="btn btn-outline btn-sm">Close</button></td>
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                        <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
+                        <button onClick={() => close(p.id)} disabled={busy} className="btn btn-outline btn-sm">Close</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

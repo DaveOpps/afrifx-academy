@@ -254,7 +254,10 @@ model PaperTrade {
   stake      Float     // margin committed for this position (USD)
   leverage   Int       @default(1)
   entryPrice Float
+  sl         Float?    // stop-loss price level
+  tp         Float?    // take-profit price level
   exitPrice  Float?
+  closeReason String?  // manual | sl | tp
   pnl        Float?    // realized profit/loss (set on close)
   status     String    @default("open") // open | closed
   openedAt   DateTime  @default(now())

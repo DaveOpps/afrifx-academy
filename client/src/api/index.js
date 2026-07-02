@@ -132,6 +132,7 @@ export const api = {
     paperPositions: () => req('GET', '/paper/positions'),
     paperHistory: () => req('GET', '/paper/history'),
     paperOpen: (b) => req('POST', '/paper/open', b),
+    paperModify: (id, b) => req('POST', `/paper/modify/${id}`, b),
     paperClose: (id) => req('POST', `/paper/close/${id}`),
     paperReset: () => req('POST', '/paper/reset'),
 };
