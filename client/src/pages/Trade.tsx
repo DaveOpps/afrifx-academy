@@ -14,7 +14,19 @@ const TV: Record<string, string> = {
 interface Inst { symbol: string; display: string; dp: number; contract: number; usdBase: boolean; pip: number; price: number | null; }
 interface Acct { balance: number; usedMargin: number; available: number; openPnl: number; equity: number; openCount: number; }
 interface Pos { id: number; symbol: string; display: string; side: string; lots: number; stake: number; entryPrice: number; sl: number | null; tp: number | null; price: number | null; pnl: number | null; openedAt: string; }
+interface Pending { id: number; symbol: string; display: string; side: string; orderType: string; lots: number; stake: number; entryPrice: number; sl: number | null; tp: number | null; openedAt: string; }
 interface Hist { id: number; display: string; side: string; lots: number; entryPrice: number; exitPrice: number; pnl: number; closeReason: string | null; closedAt: string; }
+
+// MT5-style order-kind picker. "market" fills instantly; the rest are pending
+// orders that wait for price to reach a level the trader sets.
+type OrderKind = 'market' | 'buy_limit' | 'sell_limit' | 'buy_stop' | 'sell_stop';
+const ORDER_KINDS: { value: OrderKind; label: string }[] = [
+  { value: 'market',     label: 'Market Execution' },
+  { value: 'buy_limit',  label: 'Buy Limit' },
+  { value: 'sell_limit', label: 'Sell Limit' },
+  { value: 'buy_stop',   label: 'Buy Stop' },
+  { value: 'sell_stop',  label: 'Sell Stop' },
+];
 
 const money = (n: number | null | undefined) =>
   n == null ? '—' : (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -25,10 +37,13 @@ export default function Trade() {
   const [symbol, setSymbol] = useState('EURUSD');
   const [lots, setLots] = useState(0.1);
   const [expanded, setExpanded] = useState(false);
+  const [orderKind, setOrderKind] = useState<OrderKind>('market');
+  const [orderPrice, setOrderPrice] = useState('');
   const [sl, setSl] = useState('');
   const [tp, setTp] = useState('');
   const [acct, setAcct] = useState<Acct | null>(null);
   const [positions, setPositions] = useState<Pos[]>([]);
+  const [pending, setPending] = useState<Pending[]>([]);
   const [history, setHistory] = useState<Hist[]>([]);
   const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,14 +55,18 @@ export default function Trade() {
   const notional = meta ? (meta.usdBase ? units : units * (price ?? 0)) : 0;
   const marginReq = notional / 100; // 1:100
 
+  // Reference price for sizing SL/TP: live price for market orders, the pending
+  // trigger price once one has been entered for a limit/stop order.
+  const refPrice = orderKind === 'market' ? price : (orderPrice === '' ? price : Number(orderPrice));
+
   // Pip distance + $ risk/reward magnitude for the SL/TP being entered (side-independent).
   const cashAt = (level: number) => {
-    if (!meta || price == null) return 0;
-    let p = Math.abs(level - price) * units;
+    if (!meta || refPrice == null) return 0;
+    let p = Math.abs(level - refPrice) * units;
     if (meta.usdBase) p = p / level;
     return p;
   };
-  const pipsAway = (level: number) => meta ? Math.abs(level - (price ?? 0)) / meta.pip : 0;
+  const pipsAway = (level: number) => meta ? Math.abs(level - (refPrice ?? 0)) / meta.pip : 0;
   const slNum = sl === '' ? null : Number(sl);
   const tpNum = tp === '' ? null : Number(tp);
   const risk = slNum != null && !isNaN(slNum) ? cashAt(slNum) : null;
@@ -57,15 +76,15 @@ export default function Trade() {
   const fmtP = (p: number | null) => p == null ? '—' : p.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
   const stepLot = (d: number) => setLots(Math.max(0.01, Math.round((lots + d) * 100) / 100));
   const stepPrice = (cur: string, set: (v: string) => void, dir: number) => {
-    if (price == null || !meta) return;
-    const base = cur === '' ? price : Number(cur);
+    if (refPrice == null || !meta) return;
+    const base = cur === '' ? refPrice : Number(cur);
     set((base + dir * meta.pip).toFixed(dp));
   };
 
   const refresh = useCallback(async () => {
     try {
-      const [a, p, i] = await Promise.all([api.paperAccount(), api.paperPositions(), api.paperInstruments()]);
-      setAcct(a); setPositions(p); setInsts(i);
+      const [a, p, pend, i] = await Promise.all([api.paperAccount(), api.paperPositions(), api.paperPending(), api.paperInstruments()]);
+      setAcct(a); setPositions(p); setPending(pend); setInsts(i);
     } catch { /* ignore transient */ }
   }, []);
 
@@ -80,6 +99,15 @@ export default function Trade() {
     return () => clearInterval(t);
   }, [user, refresh, loadHistory]);
 
+  function selectOrderKind(kind: OrderKind) {
+    setOrderKind(kind);
+    if (kind !== 'market' && orderPrice === '' && price != null && meta) {
+      // Sensible default: 10 pips away from market, on the correct side of the kind.
+      const dir = kind.startsWith('buy_limit') || kind === 'sell_stop' ? -1 : 1;
+      setOrderPrice((price + dir * meta.pip * 10).toFixed(dp));
+    }
+  }
+
   async function openTrade(side: 'buy' | 'sell') {
     setMsg(null); setBusy(true);
     try {
@@ -88,6 +116,26 @@ export default function Trade() {
       setSl(''); setTp('');
       await refresh();
     } catch (e: any) { setMsg({ t: 'err', m: e.message }); }
+    finally { setBusy(false); }
+  }
+
+  async function placePending() {
+    if (orderKind === 'market') return;
+    const [side, orderType] = orderKind.split('_') as ['buy' | 'sell', 'limit' | 'stop'];
+    setMsg(null); setBusy(true);
+    try {
+      await api.paperOpen({ symbol, side, lots, orderType, price: Number(orderPrice), sl: sl === '' ? null : Number(sl), tp: tp === '' ? null : Number(tp) });
+      setMsg({ t: 'ok', m: `${ORDER_KINDS.find(k => k.value === orderKind)?.label} order placed` });
+      setOrderPrice(''); setSl(''); setTp('');
+      await refresh();
+    } catch (e: any) { setMsg({ t: 'err', m: e.message }); }
+    finally { setBusy(false); }
+  }
+
+  async function cancelPending(id: number) {
+    setBusy(true);
+    try { await api.paperCancel(id); await refresh(); }
+    catch (e: any) { setMsg({ t: 'err', m: e.message }); }
     finally { setBusy(false); }
   }
 
@@ -163,14 +211,24 @@ export default function Trade() {
               </select>
             </div>
 
-            {/* Order type (market execution) */}
+            {/* Order type: Market Execution or a pending order (Buy/Sell Limit/Stop) */}
             <div>
               <label style={lbl}>Order type</label>
-              <div style={{ ...inp, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Market Execution</span>
-                <span style={{ fontSize: '0.62rem', color: '#777' }}>instant fill</span>
-              </div>
+              <select value={orderKind} onChange={e => selectOrderKind(e.target.value as OrderKind)} style={inp}>
+                {ORDER_KINDS.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}
+              </select>
             </div>
+
+            {orderKind !== 'market' && (
+              <div>
+                <label style={lbl}>Order price (trigger)</label>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <StepBtn onClick={() => stepPrice(orderPrice, setOrderPrice, -1)}>–</StepBtn>
+                  <input type="number" step="any" placeholder={fmtP(price)} value={orderPrice} onChange={e => setOrderPrice(e.target.value)} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
+                  <StepBtn onClick={() => stepPrice(orderPrice, setOrderPrice, 1)}>+</StepBtn>
+                </div>
+              </div>
+            )}
 
             {/* Volume / lot stepper (MT5 style) */}
             <div>
@@ -220,17 +278,25 @@ export default function Trade() {
               <span>Margin required: <b style={{ color: '#c9a84c' }}>{money(marginReq)}</b></span>
             </div>
 
-            {/* SELL / BUY by market */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <button onClick={() => openTrade('sell')} disabled={busy || price == null} className="btn"
-                style={{ background: 'var(--down)', color: '#fff', fontWeight: 800, flexDirection: 'column', lineHeight: 1.2, padding: '10px 6px' }}>
-                <span>SELL</span><span className="mono" style={{ fontSize: '0.95rem' }}>{fmtP(price)}</span>
+            {orderKind === 'market' ? (
+              /* SELL / BUY by market */
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <button onClick={() => openTrade('sell')} disabled={busy || price == null} className="btn"
+                  style={{ background: 'var(--down)', color: '#fff', fontWeight: 800, flexDirection: 'column', lineHeight: 1.2, padding: '10px 6px' }}>
+                  <span>SELL</span><span className="mono" style={{ fontSize: '0.95rem' }}>{fmtP(price)}</span>
+                </button>
+                <button onClick={() => openTrade('buy')} disabled={busy || price == null} className="btn"
+                  style={{ background: '#3a86c9', color: '#fff', fontWeight: 800, flexDirection: 'column', lineHeight: 1.2, padding: '10px 6px' }}>
+                  <span>BUY</span><span className="mono" style={{ fontSize: '0.95rem' }}>{fmtP(price)}</span>
+                </button>
+              </div>
+            ) : (
+              /* Place pending order */
+              <button onClick={placePending} disabled={busy || price == null || orderPrice === ''}
+                className="btn btn-gold" style={{ width: '100%', fontWeight: 800 }}>
+                {busy ? '…' : `Place ${ORDER_KINDS.find(k => k.value === orderKind)?.label}`}
               </button>
-              <button onClick={() => openTrade('buy')} disabled={busy || price == null} className="btn"
-                style={{ background: '#3a86c9', color: '#fff', fontWeight: 800, flexDirection: 'column', lineHeight: 1.2, padding: '10px 6px' }}>
-                <span>BUY</span><span className="mono" style={{ fontSize: '0.95rem' }}>{fmtP(price)}</span>
-              </button>
-            </div>
+            )}
 
             {msg && <div style={{ fontSize: '0.78rem', color: msg.t === 'ok' ? 'var(--up)' : 'var(--down)', textAlign: 'center' }}>{msg.m}</div>}
           </div>
@@ -268,6 +334,31 @@ export default function Trade() {
             </div>
           )}
         </div>
+
+        {/* Pending orders */}
+        {pending.length > 0 && (
+          <div className="card card-premium">
+            <h3 style={{ marginTop: 0 }}>Pending Orders</h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tbl}>
+                <thead><tr>{['Instrument', 'Type', 'Lots', 'Trigger Price', 'SL', 'TP', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {pending.map(p => (
+                    <tr key={p.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <td style={td}>{p.display}</td>
+                      <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side === 'buy' ? 'Buy' : 'Sell'} {p.orderType === 'limit' ? 'Limit' : 'Stop'}</td>
+                      <td style={td}>{p.lots}</td>
+                      <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
+                      <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{p.sl ?? '—'}</td>
+                      <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{p.tp ?? '—'}</td>
+                      <td style={td}><button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* History */}
         {history.length > 0 && (

@@ -130,9 +130,11 @@ export const api = {
     paperInstruments: () => req('GET', '/paper/instruments'),
     paperAccount: () => req('GET', '/paper/account'),
     paperPositions: () => req('GET', '/paper/positions'),
+    paperPending: () => req('GET', '/paper/pending'),
     paperHistory: () => req('GET', '/paper/history'),
     paperOpen: (b) => req('POST', '/paper/open', b),
     paperModify: (id, b) => req('POST', `/paper/modify/${id}`, b),
     paperClose: (id) => req('POST', `/paper/close/${id}`),
+    paperCancel: (id) => req('POST', `/paper/cancel/${id}`),
     paperReset: () => req('POST', '/paper/reset'),
 };
