@@ -16,8 +16,6 @@ interface Acct { balance: number; usedMargin: number; available: number; openPnl
 interface Pos { id: number; symbol: string; display: string; side: string; lots: number; stake: number; entryPrice: number; sl: number | null; tp: number | null; price: number | null; pnl: number | null; openedAt: string; }
 interface Hist { id: number; display: string; side: string; lots: number; entryPrice: number; exitPrice: number; pnl: number; closeReason: string | null; closedAt: string; }
 
-const LOT_SIZES = [0.01, 0.05, 0.1, 0.5, 1, 2, 5];
-
 const money = (n: number | null | undefined) =>
   n == null ? '—' : (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -25,7 +23,6 @@ export default function Trade() {
   const { user } = useAuth();
   const [insts, setInsts] = useState<Inst[]>([]);
   const [symbol, setSymbol] = useState('EURUSD');
-  const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [lots, setLots] = useState(0.1);
   const [expanded, setExpanded] = useState(false);
   const [sl, setSl] = useState('');
@@ -43,19 +40,27 @@ export default function Trade() {
   const notional = meta ? (meta.usdBase ? units : units * (price ?? 0)) : 0;
   const marginReq = notional / 100; // 1:100
 
-  // Pip distance + $ risk/reward for the SL/TP being entered (relative to live price).
-  const pnlAt = (level: number) => {
+  // Pip distance + $ risk/reward magnitude for the SL/TP being entered (side-independent).
+  const cashAt = (level: number) => {
     if (!meta || price == null) return 0;
-    let p = (level - price) * units * (side === 'buy' ? 1 : -1);
+    let p = Math.abs(level - price) * units;
     if (meta.usdBase) p = p / level;
     return p;
   };
   const pipsAway = (level: number) => meta ? Math.abs(level - (price ?? 0)) / meta.pip : 0;
   const slNum = sl === '' ? null : Number(sl);
   const tpNum = tp === '' ? null : Number(tp);
-  const risk = slNum != null && !isNaN(slNum) ? Math.abs(pnlAt(slNum)) : null;
-  const reward = tpNum != null && !isNaN(tpNum) ? Math.abs(pnlAt(tpNum)) : null;
+  const risk = slNum != null && !isNaN(slNum) ? cashAt(slNum) : null;
+  const reward = tpNum != null && !isNaN(tpNum) ? cashAt(tpNum) : null;
   const rr = risk && reward ? reward / risk : null;
+
+  const fmtP = (p: number | null) => p == null ? '—' : p.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const stepLot = (d: number) => setLots(Math.max(0.01, Math.round((lots + d) * 100) / 100));
+  const stepPrice = (cur: string, set: (v: string) => void, dir: number) => {
+    if (price == null || !meta) return;
+    const base = cur === '' ? price : Number(cur);
+    set((base + dir * meta.pip).toFixed(dp));
+  };
 
   const refresh = useCallback(async () => {
     try {
@@ -75,11 +80,11 @@ export default function Trade() {
     return () => clearInterval(t);
   }, [user, refresh, loadHistory]);
 
-  async function openTrade() {
+  async function openTrade(side: 'buy' | 'sell') {
     setMsg(null); setBusy(true);
     try {
       await api.paperOpen({ symbol, side, lots, sl: sl === '' ? null : Number(sl), tp: tp === '' ? null : Number(tp) });
-      setMsg({ t: 'ok', m: `${side.toUpperCase()} ${meta?.display} opened` });
+      setMsg({ t: 'ok', m: `${side.toUpperCase()} ${lots} lot ${meta?.display} opened` });
       setSl(''); setTp('');
       await refresh();
     } catch (e: any) { setMsg({ t: 'err', m: e.message }); }
@@ -158,35 +163,46 @@ export default function Trade() {
               </select>
             </div>
 
-            <div style={{ textAlign: 'center', padding: '6px 0' }}>
-              <div style={{ fontSize: '0.68rem', color: '#9a9a9a', textTransform: 'uppercase', letterSpacing: 1 }}>Live Price</div>
-              <div className="mono" style={{ fontSize: '1.7rem', fontWeight: 800, color: '#fff' }}>
-                {price == null ? '—' : price.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp })}
+            {/* Order type (market execution) */}
+            <div>
+              <label style={lbl}>Order type</label>
+              <div style={{ ...inp, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Market Execution</span>
+                <span style={{ fontSize: '0.62rem', color: '#777' }}>instant fill</span>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <button onClick={() => setSide('buy')} className={`btn btn-sm ${side === 'buy' ? '' : 'btn-outline'}`}
-                style={side === 'buy' ? { background: 'var(--up)', color: '#04150b', fontWeight: 800 } : {}}>▲ BUY</button>
-              <button onClick={() => setSide('sell')} className={`btn btn-sm ${side === 'sell' ? '' : 'btn-outline'}`}
-                style={side === 'sell' ? { background: 'var(--down)', color: '#fff', fontWeight: 800 } : {}}>▼ SELL</button>
-            </div>
-
+            {/* Volume / lot stepper (MT5 style) */}
             <div>
-              <label style={lbl}>Lot size</label>
-              <select value={lots} onChange={e => setLots(Number(e.target.value))} style={inp}>
-                {LOT_SIZES.map(l => <option key={l} value={l}>{l} {l === 1 ? 'lot' : 'lots'}</option>)}
-              </select>
+              <label style={lbl}>Volume (lots)</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
+                {[-0.5, -0.1, -0.01].map(d => (
+                  <StepBtn key={d} onClick={() => stepLot(d)} disabled={lots + d < 0.01}>{d}</StepBtn>
+                ))}
+                <div className="mono" style={{ minWidth: 66, textAlign: 'center', fontSize: '1.35rem', fontWeight: 800, color: '#c9a84c' }}>{lots.toFixed(2)}</div>
+                {[0.01, 0.1, 0.5].map(d => (
+                  <StepBtn key={d} onClick={() => stepLot(d)}>+{d}</StepBtn>
+                ))}
+              </div>
             </div>
 
+            {/* SL / TP steppers (step = 1 pip) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div>
                 <label style={lbl}>Stop Loss</label>
-                <input type="number" step="any" placeholder="optional" value={sl} onChange={e => setSl(e.target.value)} style={inp} />
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <StepBtn onClick={() => stepPrice(sl, setSl, -1)}>–</StepBtn>
+                  <input type="number" step="any" placeholder="—" value={sl} onChange={e => setSl(e.target.value)} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
+                  <StepBtn onClick={() => stepPrice(sl, setSl, 1)}>+</StepBtn>
+                </div>
               </div>
               <div>
                 <label style={lbl}>Take Profit</label>
-                <input type="number" step="any" placeholder="optional" value={tp} onChange={e => setTp(e.target.value)} style={inp} />
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <StepBtn onClick={() => stepPrice(tp, setTp, -1)}>–</StepBtn>
+                  <input type="number" step="any" placeholder="—" value={tp} onChange={e => setTp(e.target.value)} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
+                  <StepBtn onClick={() => stepPrice(tp, setTp, 1)}>+</StepBtn>
+                </div>
               </div>
             </div>
 
@@ -204,10 +220,17 @@ export default function Trade() {
               <span>Margin required: <b style={{ color: '#c9a84c' }}>{money(marginReq)}</b></span>
             </div>
 
-            <button onClick={openTrade} disabled={busy || price == null}
-              className="btn btn-gold" style={{ width: '100%', fontWeight: 800 }}>
-              {busy ? '…' : `Open ${side.toUpperCase()} Trade`}
-            </button>
+            {/* SELL / BUY by market */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <button onClick={() => openTrade('sell')} disabled={busy || price == null} className="btn"
+                style={{ background: 'var(--down)', color: '#fff', fontWeight: 800, flexDirection: 'column', lineHeight: 1.2, padding: '10px 6px' }}>
+                <span>SELL</span><span className="mono" style={{ fontSize: '0.95rem' }}>{fmtP(price)}</span>
+              </button>
+              <button onClick={() => openTrade('buy')} disabled={busy || price == null} className="btn"
+                style={{ background: '#3a86c9', color: '#fff', fontWeight: 800, flexDirection: 'column', lineHeight: 1.2, padding: '10px 6px' }}>
+                <span>BUY</span><span className="mono" style={{ fontSize: '0.95rem' }}>{fmtP(price)}</span>
+              </button>
+            </div>
 
             {msg && <div style={{ fontSize: '0.78rem', color: msg.t === 'ok' ? 'var(--up)' : 'var(--down)', textAlign: 'center' }}>{msg.m}</div>}
           </div>
@@ -286,6 +309,15 @@ const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', backgroun
 const tbl: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' };
 const th: React.CSSProperties = { textAlign: 'left', padding: '6px 10px', color: '#9a9a9a', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: 1 };
 const td: React.CSSProperties = { padding: '9px 10px', color: '#e6e6e6' };
+
+function StepBtn({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button onClick={onClick} disabled={disabled}
+      style={{ padding: '7px 8px', minWidth: 40, background: '#141418', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 7, color: '#e6e6e6', fontSize: '0.8rem', fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1 }}>
+      {children}
+    </button>
+  );
+}
 
 function Kpi({ label, value, color, tint }: { label: string; value: string; color?: string; tint?: string }) {
   return (
