@@ -4,10 +4,8 @@ import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import MarketTicker from '../components/MarketTicker';
-import CandleChart from '../components/charts/CandleChart';
-import OrderBook from '../components/OrderBook';
 import Donut from '../components/charts/Donut';
-import { fetchKlines, Candle } from '../api/market';
+import TradingViewWidget from '../components/TradingViewWidget';
 
 const ECON_EVENTS = [
   { time: '08:30', cur: 'USD', title: 'Core CPI m/m', impact: 'high' },
@@ -41,21 +39,7 @@ export default function Dashboard() {
   const [activity, setActivity] = useState<any>(null);
   const [board, setBoard] = useState<any[]>([]);
   const [perf, setPerf] = useState<any>(null);
-  const [candles, setCandles] = useState<Candle[] | null>(null);
-  const [chartLive, setChartLive] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      const k = await fetchKlines('BTCUSDT', '1h', 40);
-      if (!active) return;
-      if (k && k.length) { setCandles(k); setChartLive(true); } else { setChartLive(false); }
-    };
-    load();
-    const t = setInterval(load, 20000);
-    return () => { active = false; clearInterval(t); };
-  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -164,15 +148,25 @@ export default function Dashboard() {
 
         {/* Chart + signals/live */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: 20 }} className="bento-2">
-          <div className="card card-premium">
-            <CandleChart data={candles ?? undefined} pair="BTC/USDT" live={chartLive} />
-            <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <Link to="/markets" className="btn btn-outline btn-sm">Open full chart →</Link>
+          <div className="card card-premium" style={{ padding: 8 }}>
+            <TradingViewWidget
+              scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+              height={360}
+              config={{ autosize: true, symbol: 'OANDA:XAUUSD', interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', allow_symbol_change: true, hide_side_toolbar: true, calendar: false, support_host: 'https://www.tradingview.com' }}
+            />
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <Link to="/markets" className="btn btn-outline btn-sm">Open full markets →</Link>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Order book */}
-            <div className="card"><OrderBook symbol="BTCUSDT" rows={7} dp={1} /></div>
+            {/* Market technicals */}
+            <div className="card" style={{ padding: 8 }}>
+              <TradingViewWidget
+                scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js"
+                height={300}
+                config={{ interval: '1D', width: '100%', isTransparent: true, height: '100%', symbol: 'OANDA:XAUUSD', showIntervalTabs: true, displayMode: 'single', locale: 'en', colorTheme: 'dark' }}
+              />
+            </div>
 
             {/* Live countdown */}
             {nextMeet?.meeting ? (
