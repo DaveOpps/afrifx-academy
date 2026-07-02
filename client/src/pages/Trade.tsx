@@ -27,6 +27,7 @@ export default function Trade() {
   const [symbol, setSymbol] = useState('EURUSD');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [lots, setLots] = useState(0.1);
+  const [expanded, setExpanded] = useState(false);
   const [sl, setSl] = useState('');
   const [tp, setTp] = useState('');
   const [acct, setAcct] = useState<Acct | null>(null);
@@ -134,17 +135,22 @@ export default function Trade() {
         </div>
 
         {/* Chart + trade panel */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 20 }} className="tr-grid">
-          <div className="card card-premium" style={{ padding: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: expanded ? '1fr' : 'minmax(0,1fr) 320px', gap: 20 }} className="tr-grid">
+          <div className="card card-premium" style={{ padding: 8, position: 'relative' }}>
+            <button onClick={() => setExpanded(v => !v)} className="btn btn-outline btn-sm"
+              style={{ position: 'absolute', top: 16, right: 16, zIndex: 3 }}>
+              {expanded ? '⤡ Collapse' : '⤢ Enlarge chart'}
+            </button>
             <TradingViewWidget
+              key={expanded ? 'big' : 'small'}
               scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
-              height={480}
-              config={{ width: '100%', height: 480, symbol: TV[symbol], interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: false, calendar: false, support_host: 'https://www.tradingview.com' }}
+              height={expanded ? 780 : 480}
+              config={{ width: '100%', height: expanded ? 780 : 480, symbol: TV[symbol], interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: false, calendar: false, support_host: 'https://www.tradingview.com' }}
             />
           </div>
 
           {/* Order ticket */}
-          <div className="card card-premium" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="card card-premium" style={{ display: expanded ? 'grid' : 'flex', flexDirection: 'column', gridTemplateColumns: expanded ? 'repeat(auto-fit,minmax(220px,1fr))' : undefined, gap: 14 }}>
             <div>
               <label style={lbl}>Instrument</label>
               <select value={symbol} onChange={e => setSymbol(e.target.value)} style={inp}>
