@@ -139,7 +139,7 @@ export default function Trade() {
             <TradingViewWidget
               scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
               height={480}
-              config={{ width: '100%', height: 480, symbol: TV[symbol], interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', hide_side_toolbar: true, allow_symbol_change: false, calendar: false, support_host: 'https://www.tradingview.com' }}
+              config={{ width: '100%', height: 480, symbol: TV[symbol], interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: false, calendar: false, support_host: 'https://www.tradingview.com' }}
             />
           </div>
 
