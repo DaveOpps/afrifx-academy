@@ -22,6 +22,7 @@ import applicationRoutes from './routes/applications.js';
 import qrRoutes from './routes/qr.js';
 import assignmentRoutes from './routes/assignments.js';
 import fileRoutes from './routes/files.js';
+import paperRoutes from './routes/paper.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -49,6 +50,7 @@ app.use('/api/applications',  applicationRoutes);
 app.use('/api/qr',            qrRoutes);
 app.use('/api/assignments',   assignmentRoutes);
 app.use('/api/files',         fileRoutes);
+app.use('/api/paper',         paperRoutes);
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 

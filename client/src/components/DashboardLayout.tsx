@@ -30,6 +30,7 @@ const STUDENT_NAV = [
   { to: '/dashboard',    label: 'Omni Dashboard', icon: 'dashboard' },
   { to: '/courses',      label: 'Courses',      icon: 'courses' },
   { to: '/markets',      label: 'Live Markets', icon: 'signals' },
+  { to: '/trade',        label: 'Paper Trading',icon: 'analytics' },
   { to: '/signals',      label: 'Signals',      icon: 'signals' },
   { to: '/performance',  label: 'Performance',  icon: 'analytics' },
   { to: '/meetings',     label: 'Live Sessions',icon: 'meetings' },

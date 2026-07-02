@@ -147,4 +147,13 @@ export const api = {
   adminCerts:   ()                 => req('GET',  '/admin/certificates'),
   issueCert:    (b: unknown)       => req('POST', '/admin/certificates/issue', b),
   resetStudentPassword: (id: number, newPassword: string) => req('POST', `/admin/students/${id}/reset-password`, { newPassword }),
+
+  // Paper trading (demo)
+  paperInstruments: () => req('GET', '/paper/instruments'),
+  paperAccount:     () => req('GET', '/paper/account'),
+  paperPositions:   () => req('GET', '/paper/positions'),
+  paperHistory:     () => req('GET', '/paper/history'),
+  paperOpen:  (b: { symbol: string; side: string; stake: number; leverage: number }) => req('POST', '/paper/open', b),
+  paperClose: (id: number) => req('POST', `/paper/close/${id}`),
+  paperReset: () => req('POST', '/paper/reset'),
 };

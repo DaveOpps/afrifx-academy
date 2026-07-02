@@ -25,6 +25,7 @@ model User {
   role         String        @default("student")
   phone        String?
   points       Int           @default(0)
+  paperBalance Float         @default(10000)   // demo paper-trading balance
   studentId    String?       @unique
   tier         String        @default("free")   // free | premium | vvip
   signalSubUntil DateTime?                       // active monthly signal subscription expiry
@@ -38,6 +39,7 @@ model User {
   reviews      Review[]
   readAnnouncements AnnouncementRead[]
   assignmentSubmits AssignmentSubmit[]
+  paperTrades  PaperTrade[]
 }
 
 model Course {
@@ -239,6 +241,24 @@ model Assignment {
   dueDate     DateTime?
   module      Module               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   submissions AssignmentSubmit[]
+}
+
+// Paper-trading (demo) positions. No real money.
+model PaperTrade {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  symbol     String    // instrument key, e.g. "EURUSD"
+  display    String    // "EUR/USD"
+  side       String    // "buy" | "sell"
+  stake      Float     // margin committed for this position
+  leverage   Int       @default(1)
+  entryPrice Float
+  exitPrice  Float?
+  pnl        Float?    // realized profit/loss (set on close)
+  status     String    @default("open") // open | closed
+  openedAt   DateTime  @default(now())
+  closedAt   DateTime?
+  user       User      @relation(fields: [userId], references: [id])
 }
 
 model AssignmentSubmit {

@@ -21,6 +21,7 @@ import About          from './pages/About';
 import Pricing        from './pages/Pricing';
 import Performance    from './pages/Performance';
 import Markets        from './pages/Markets';
+import Trade          from './pages/Trade';
 import MyAccount      from './pages/MyAccount';
 import PartnerIB      from './pages/PartnerIB';
 import PartnerBroker  from './pages/PartnerBroker';
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="/pricing"       element={<Pricing />} />
           <Route path="/performance"   element={<Performance />} />
           <Route path="/markets"       element={<Markets />} />
+          <Route path="/trade"         element={<Trade />} />
           <Route path="/partners/ib"      element={<PartnerIB />} />
           <Route path="/partners/broker"  element={<PartnerBroker />} />
           <Route path="/partners/seminar" element={<PartnerSeminar />} />
