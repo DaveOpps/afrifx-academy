@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
 import PageShell from '../components/PageShell';
 import TradingViewWidget from '../components/TradingViewWidget';
 import { api } from '../api';
@@ -432,20 +432,30 @@ export default function Trade() {
                 <thead><tr>{['Instrument', 'Side', 'Lots', 'Entry', 'Current', 'SL', 'TP', 'P&L', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {positions.map(p => (
-                    <tr key={p.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                      <td style={td}>{p.display}</td>
-                      <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side.toUpperCase()}</td>
-                      <td style={td}>{p.lots}</td>
-                      <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
-                      <td style={{ ...td, fontFamily: 'monospace' }}>{p.price ?? '—'}</td>
-                      <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{sltpCell(p, p.sl, measureLevel)}</td>
-                      <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
-                      <td style={{ ...td, color: upDown(p.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(p.pnl)}</td>
-                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                        <button onClick={() => startEdit(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
-                        <button onClick={() => close(p.id)} disabled={busy} className="btn btn-outline btn-sm">Close</button>
-                      </td>
-                    </tr>
+                    <Fragment key={p.id}>
+                      <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <td style={td}>{p.display}</td>
+                        <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side.toUpperCase()}</td>
+                        <td style={td}>{p.lots}</td>
+                        <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
+                        <td style={{ ...td, fontFamily: 'monospace' }}>{p.price ?? '—'}</td>
+                        <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{sltpCell(p, p.sl, measureLevel)}</td>
+                        <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
+                        <td style={{ ...td, color: upDown(p.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(p.pnl)}</td>
+                        <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                          <button onClick={() => editingId === p.id ? setEditingId(null) : startEdit(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
+                          <button onClick={() => close(p.id)} disabled={busy} className="btn btn-outline btn-sm">Close</button>
+                        </td>
+                      </tr>
+                      {editingId === p.id && (
+                        <tr>
+                          <td colSpan={9} style={{ padding: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <ModifyEditor trade={p} inst={insts.find(i => i.symbol === p.symbol)} busy={busy}
+                              onSave={(s, t) => saveEdit(p.id, s, t)} onCancel={() => setEditingId(null)} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -462,18 +472,28 @@ export default function Trade() {
                 <thead><tr>{['Instrument', 'Type', 'Lots', 'Trigger Price', 'SL', 'TP', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {pending.map(p => (
-                    <tr key={p.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                      <td style={td}>{p.display}</td>
-                      <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side === 'buy' ? 'Buy' : 'Sell'} {p.orderType === 'limit' ? 'Limit' : 'Stop'}</td>
-                      <td style={td}>{p.lots}</td>
-                      <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
-                      <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{sltpCell(p, p.sl, measureLevel)}</td>
-                      <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
-                      <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                        <button onClick={() => startEdit(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
-                        <button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel</button>
-                      </td>
-                    </tr>
+                    <Fragment key={p.id}>
+                      <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <td style={td}>{p.display}</td>
+                        <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side === 'buy' ? 'Buy' : 'Sell'} {p.orderType === 'limit' ? 'Limit' : 'Stop'}</td>
+                        <td style={td}>{p.lots}</td>
+                        <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
+                        <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{sltpCell(p, p.sl, measureLevel)}</td>
+                        <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
+                        <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                          <button onClick={() => editingId === p.id ? setEditingId(null) : startEdit(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
+                          <button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel</button>
+                        </td>
+                      </tr>
+                      {editingId === p.id && (
+                        <tr>
+                          <td colSpan={7} style={{ padding: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <ModifyEditor trade={p} inst={insts.find(i => i.symbol === p.symbol)} busy={busy}
+                              onSave={(s, t) => saveEdit(p.id, s, t)} onCancel={() => setEditingId(null)} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
