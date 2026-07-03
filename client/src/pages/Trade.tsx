@@ -86,6 +86,7 @@ export default function Trade() {
     return p;
   };
   const pipsAway = (level: number) => meta ? Math.abs(level - (refPrice ?? 0)) / meta.pip : 0;
+  const pointsAway = (level: number) => meta ? Math.round(Math.abs(level - (refPrice ?? 0)) * Math.pow(10, dp)) : 0;
   const slNum = sl === '' ? null : Number(sl);
   const tpNum = tp === '' ? null : Number(tp);
   const risk = slNum != null && !isNaN(slNum) ? cashAt(slNum) : null;
@@ -308,9 +309,9 @@ export default function Trade() {
             </div>
 
             {(risk != null || reward != null) && (
-              <div style={{ fontSize: '0.74rem', display: 'flex', flexDirection: 'column', gap: 3, padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                {risk != null && <span style={{ color: 'var(--down)' }}>SL: {pipsAway(slNum!).toFixed(1)} pips · risk {money(risk)}</span>}
-                {reward != null && <span style={{ color: 'var(--up)' }}>TP: {pipsAway(tpNum!).toFixed(1)} pips · reward {money(reward)}</span>}
+              <div style={{ fontSize: '0.74rem', display: 'flex', flexDirection: 'column', gap: 4, padding: '9px 11px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                {reward != null && <span style={{ color: 'var(--up)' }}>TP · {pipsAway(tpNum!).toFixed(1)} pips · {pointsAway(tpNum!).toLocaleString()} pts · <b>reward +{money(reward)}</b></span>}
+                {risk != null && <span style={{ color: 'var(--down)' }}>SL · {pipsAway(slNum!).toFixed(1)} pips · {pointsAway(slNum!).toLocaleString()} pts · <b>risk -{money(risk)}</b></span>}
                 {rr != null && <span style={{ color: '#c9a84c' }}>Risk : Reward = 1 : {rr.toFixed(2)}</span>}
               </div>
             )}
@@ -345,34 +346,59 @@ export default function Trade() {
           </div>
         </div>
 
-        {/* MT5-style position overlay for the selected instrument */}
-        {positions.filter(p => p.symbol === symbol).length > 0 && (
+        {/* MT5-style position/order overlay for the selected instrument */}
+        {(positions.some(p => p.symbol === symbol) || pending.some(p => p.symbol === symbol)) && (
           <div className="card card-premium" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '0.72rem', color: '#9a9a9a', textTransform: 'uppercase', letterSpacing: 1 }}>
               Position overlay · {meta?.display}
             </div>
+
+            {/* Open positions */}
             {positions.filter(p => p.symbol === symbol).map(p => {
               const pts = (level: number) => Math.round(Math.abs(level - p.entryPrice) * Math.pow(10, dp));
               const cash = (level: number) => measureLevel(p, level)?.cash ?? 0;
               return (
-                <div key={p.id} style={{ padding: '4px 0' }}>
-                  {/* TP line */}
+                <div key={`o${p.id}`} style={{ padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   {p.tp != null && (
                     <OverlayLine color="#2e9e5b" bg="rgba(46,158,91,0.10)"
-                      left={`TP  ·  +${money(cash(p.tp))}  ·  ${pts(p.tp).toLocaleString()} pts`}
-                      right={String(p.tp)} />
+                      left={`TP  ·  +${money(cash(p.tp))}  ·  ${pts(p.tp).toLocaleString()} pts`} right={String(p.tp)} />
                   )}
-                  {/* Entry line */}
                   <OverlayLine color="#3a86c9" bg="rgba(58,134,201,0.12)"
                     left={`${p.side.toUpperCase()} ${p.lots}  ·  `}
-                    leftExtra={<b style={{ color: upDown(p.pnl) }}>{money(p.pnl)}</b>}
-                    right={String(p.entryPrice)} />
-                  {/* SL line */}
+                    leftExtra={<b style={{ color: upDown(p.pnl) }}>{money(p.pnl)}</b>} right={String(p.entryPrice)} />
                   {p.sl != null && (
                     <OverlayLine color="#d9534f" bg="rgba(217,83,79,0.10)"
-                      left={`SL  ·  -${money(cash(p.sl))}  ·  ${pts(p.sl).toLocaleString()} pts`}
-                      right={String(p.sl)} />
+                      left={`SL  ·  -${money(cash(p.sl))}  ·  ${pts(p.sl).toLocaleString()} pts`} right={String(p.sl)} />
                   )}
+                  <div style={{ display: 'flex', gap: 8, padding: '8px 16px' }}>
+                    <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm">Modify SL/TP</button>
+                    <button onClick={() => close(p.id)} disabled={busy} className="btn btn-sm" style={{ background: '#d9534f', color: '#fff', fontWeight: 700 }}>Close position</button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Pending orders */}
+            {pending.filter(p => p.symbol === symbol).map(p => {
+              const pts = (level: number) => Math.round(Math.abs(level - p.entryPrice) * Math.pow(10, dp));
+              const cash = (level: number) => measureLevel(p, level)?.cash ?? 0;
+              return (
+                <div key={`p${p.id}`} style={{ padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  {p.tp != null && (
+                    <OverlayLine color="#2e9e5b" bg="rgba(46,158,91,0.07)" dashed
+                      left={`TP  ·  +${money(cash(p.tp))}  ·  ${pts(p.tp).toLocaleString()} pts`} right={String(p.tp)} />
+                  )}
+                  <OverlayLine color="#c9a84c" bg="rgba(201,168,76,0.10)" dashed
+                    left={`${p.side.toUpperCase()} ${p.orderType.toUpperCase()} ${p.lots}  ·  `}
+                    leftExtra={<b style={{ color: '#c9a84c' }}>pending</b>} right={String(p.entryPrice)} />
+                  {p.sl != null && (
+                    <OverlayLine color="#d9534f" bg="rgba(217,83,79,0.07)" dashed
+                      left={`SL  ·  -${money(cash(p.sl))}  ·  ${pts(p.sl).toLocaleString()} pts`} right={String(p.sl)} />
+                  )}
+                  <div style={{ display: 'flex', gap: 8, padding: '8px 16px' }}>
+                    <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm">Modify SL/TP</button>
+                    <button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel order</button>
+                  </div>
                 </div>
               );
             })}
@@ -509,9 +535,9 @@ function sltpCell(
 
 // One horizontal "line" row in the MT5-style position overlay: a coloured label
 // on the left and the price (in a coloured tag) pinned to the right.
-function OverlayLine({ color, bg, left, leftExtra, right }: { color: string; bg: string; left: string; leftExtra?: React.ReactNode; right: string }) {
+function OverlayLine({ color, bg, left, leftExtra, right, dashed }: { color: string; bg: string; left: string; leftExtra?: React.ReactNode; right: string; dashed?: boolean }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 16px', background: bg, borderLeft: `3px solid ${color}` }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 16px', background: bg, borderLeft: `3px ${dashed ? 'dashed' : 'solid'} ${color}` }}>
       <span style={{ fontSize: '0.8rem', color, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{left}{leftExtra}</span>
       <span className="mono" style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fff', background: color, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>{right}</span>
     </div>
