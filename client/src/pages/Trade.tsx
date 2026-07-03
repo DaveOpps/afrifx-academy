@@ -66,6 +66,7 @@ export default function Trade() {
   const [history, setHistory] = useState<Hist[]>([]);
   const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const meta = insts.find(i => i.symbol === symbol);
   const price = meta?.price ?? null;
@@ -172,14 +173,18 @@ export default function Trade() {
     finally { setBusy(false); }
   }
 
-  async function modify(p: Pos | Pending) {
-    const nsl = prompt(`Stop Loss price for ${p.display} (leave blank for none):`, p.sl != null ? String(p.sl) : '');
-    if (nsl === null) return;
-    const ntp = prompt(`Take Profit price for ${p.display} (leave blank for none):`, p.tp != null ? String(p.tp) : '');
-    if (ntp === null) return;
+  // Open the inline SL/TP editor for a position/order (switching to its instrument
+  // so the overlay — where the editor renders — is showing that market).
+  function startEdit(p: Pos | Pending) {
+    setSymbol(p.symbol);
+    setEditingId(p.id);
+    setMsg(null);
+  }
+  async function saveEdit(id: number, nsl: string, ntp: string) {
     setBusy(true); setMsg(null);
     try {
-      await api.paperModify(p.id, { sl: nsl === '' ? null : Number(nsl), tp: ntp === '' ? null : Number(ntp) });
+      await api.paperModify(id, { sl: nsl === '' ? null : Number(nsl), tp: ntp === '' ? null : Number(ntp) });
+      setEditingId(null);
       await refresh();
     } catch (e: any) { setMsg({ t: 'err', m: e.message }); }
     finally { setBusy(false); }
@@ -370,10 +375,15 @@ export default function Trade() {
                     <OverlayLine color="#d9534f" bg="rgba(217,83,79,0.10)"
                       left={`SL  ·  -${money(cash(p.sl))}  ·  ${pts(p.sl).toLocaleString()} pts`} right={String(p.sl)} />
                   )}
-                  <div style={{ display: 'flex', gap: 8, padding: '8px 16px' }}>
-                    <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm">Modify SL/TP</button>
-                    <button onClick={() => close(p.id)} disabled={busy} className="btn btn-sm" style={{ background: '#d9534f', color: '#fff', fontWeight: 700 }}>Close position</button>
-                  </div>
+                  {editingId === p.id ? (
+                    <ModifyEditor trade={p} inst={insts.find(i => i.symbol === p.symbol)} busy={busy}
+                      onSave={(s, t) => saveEdit(p.id, s, t)} onCancel={() => setEditingId(null)} />
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, padding: '8px 16px' }}>
+                      <button onClick={() => startEdit(p)} disabled={busy} className="btn btn-outline btn-sm">Modify SL/TP</button>
+                      <button onClick={() => close(p.id)} disabled={busy} className="btn btn-sm" style={{ background: '#d9534f', color: '#fff', fontWeight: 700 }}>Close position</button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -395,10 +405,15 @@ export default function Trade() {
                     <OverlayLine color="#d9534f" bg="rgba(217,83,79,0.07)" dashed
                       left={`SL  ·  -${money(cash(p.sl))}  ·  ${pts(p.sl).toLocaleString()} pts`} right={String(p.sl)} />
                   )}
-                  <div style={{ display: 'flex', gap: 8, padding: '8px 16px' }}>
-                    <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm">Modify SL/TP</button>
-                    <button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel order</button>
-                  </div>
+                  {editingId === p.id ? (
+                    <ModifyEditor trade={p} inst={insts.find(i => i.symbol === p.symbol)} busy={busy}
+                      onSave={(s, t) => saveEdit(p.id, s, t)} onCancel={() => setEditingId(null)} />
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, padding: '8px 16px' }}>
+                      <button onClick={() => startEdit(p)} disabled={busy} className="btn btn-outline btn-sm">Modify SL/TP</button>
+                      <button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel order</button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -427,7 +442,7 @@ export default function Trade() {
                       <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
                       <td style={{ ...td, color: upDown(p.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(p.pnl)}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                        <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
+                        <button onClick={() => startEdit(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
                         <button onClick={() => close(p.id)} disabled={busy} className="btn btn-outline btn-sm">Close</button>
                       </td>
                     </tr>
@@ -455,7 +470,7 @@ export default function Trade() {
                       <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{sltpCell(p, p.sl, measureLevel)}</td>
                       <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                        <button onClick={() => modify(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
+                        <button onClick={() => startEdit(p)} disabled={busy} className="btn btn-outline btn-sm" style={{ marginRight: 6 }}>SL/TP</button>
                         <button onClick={() => cancelPending(p.id)} disabled={busy} className="btn btn-outline btn-sm">Cancel</button>
                       </td>
                     </tr>
@@ -540,6 +555,61 @@ function OverlayLine({ color, bg, left, leftExtra, right, dashed }: { color: str
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 16px', background: bg, borderLeft: `3px ${dashed ? 'dashed' : 'solid'} ${color}` }}>
       <span style={{ fontSize: '0.8rem', color, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{left}{leftExtra}</span>
       <span className="mono" style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fff', background: color, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>{right}</span>
+    </div>
+  );
+}
+
+// Inline SL/TP editor for an open position or pending order — calculates the pip,
+// point and $ distance from the trade's entry price live as you type/step.
+function ModifyEditor({ trade, inst, busy, onSave, onCancel }: {
+  trade: { id: number; side: string; lots: number; entryPrice: number; sl: number | null; tp: number | null };
+  inst: Inst | undefined;
+  busy: boolean;
+  onSave: (sl: string, tp: string) => void;
+  onCancel: () => void;
+}) {
+  const [sl, setSl] = useState(trade.sl != null ? String(trade.sl) : '');
+  const [tp, setTp] = useState(trade.tp != null ? String(trade.tp) : '');
+  const dp = inst?.dp ?? 4, pip = inst?.pip ?? 0.0001, contract = inst?.contract ?? 1, usdBase = inst?.usdBase ?? false;
+  const measure = (lvl: number) => {
+    const units = trade.lots * contract;
+    let cash = Math.abs(lvl - trade.entryPrice) * units;
+    if (usdBase) cash = cash / lvl;
+    return { pips: Math.abs(lvl - trade.entryPrice) / pip, pts: Math.round(Math.abs(lvl - trade.entryPrice) * Math.pow(10, dp)), cash };
+  };
+  const step = (cur: string, set: (v: string) => void, dir: number) => {
+    const base = cur === '' ? trade.entryPrice : Number(cur);
+    set((base + dir * pip).toFixed(dp));
+  };
+  const slNum = sl === '' ? null : Number(sl), tpNum = tp === '' ? null : Number(tp);
+  return (
+    <div style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.02)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div>
+          <label style={lbl}>Stop Loss</label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <StepBtn onClick={() => step(sl, setSl, -1)} narrow>–</StepBtn>
+            <input type="number" step="any" placeholder="—" value={sl} onChange={e => setSl(e.target.value)} className="no-spin" style={priceInp} />
+            <StepBtn onClick={() => step(sl, setSl, 1)} narrow>+</StepBtn>
+          </div>
+        </div>
+        <div>
+          <label style={lbl}>Take Profit</label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <StepBtn onClick={() => step(tp, setTp, -1)} narrow>–</StepBtn>
+            <input type="number" step="any" placeholder="—" value={tp} onChange={e => setTp(e.target.value)} className="no-spin" style={priceInp} />
+            <StepBtn onClick={() => step(tp, setTp, 1)} narrow>+</StepBtn>
+          </div>
+        </div>
+      </div>
+      <div style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {tpNum != null && !isNaN(tpNum) && <span style={{ color: 'var(--up)' }}>TP · {measure(tpNum).pips.toFixed(1)} pips · {measure(tpNum).pts.toLocaleString()} pts · +{money(measure(tpNum).cash)}</span>}
+        {slNum != null && !isNaN(slNum) && <span style={{ color: 'var(--down)' }}>SL · {measure(slNum).pips.toFixed(1)} pips · {measure(slNum).pts.toLocaleString()} pts · -{money(measure(slNum).cash)}</span>}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => onSave(sl, tp)} disabled={busy} className="btn btn-gold btn-sm" style={{ fontWeight: 700 }}>Save SL/TP</button>
+        <button onClick={onCancel} disabled={busy} className="btn btn-outline btn-sm">Cancel</button>
+      </div>
     </div>
   );
 }
