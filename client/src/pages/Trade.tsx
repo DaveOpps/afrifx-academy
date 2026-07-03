@@ -64,6 +64,10 @@ export default function Trade() {
   const [expanded, setExpanded] = useState(false);
   const [chartTheme, setChartTheme] = useState<'dark' | 'light'>('dark');
   const [chartTv, setChartTv] = useState(providerOptions('EURUSD')[0].tv);
+  // Remembers the last chart source picked for each instrument, so switching
+  // back to one shows the SAME symbol string you were drawing on (TradingView
+  // saves drawings per-symbol in the browser, so this keeps your analysis intact).
+  const [sourceBySymbol, setSourceBySymbol] = useState<Record<string, string>>({});
   const [orderKind, setOrderKind] = useState<OrderKind>('market');
   const [orderPrice, setOrderPrice] = useState('');
   const [limitPriceInput, setLimitPriceInput] = useState(''); // Stop Limit only: the fill price once the stop triggers
@@ -133,7 +137,7 @@ export default function Trade() {
   }, []);
 
   // When the instrument changes, reset the chart to its first available source.
-  useEffect(() => { setChartTv(providerOptions(symbol)[0].tv); }, [symbol]);
+  useEffect(() => { setChartTv(sourceBySymbol[symbol] ?? providerOptions(symbol)[0].tv); }, [symbol]);
 
   useEffect(() => {
     if (!user) return;
@@ -266,12 +270,13 @@ export default function Trade() {
                 {expanded ? '⤡ Collapse' : '⤢ Enlarge chart'}
               </button>
             </div>
-            <TradingViewWidget
-              key={`${chartTv}-${chartTheme}-${expanded ? 'big' : 'small'}`}
-              scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
-              height={expanded ? 780 : 480}
-              config={{ width: '100%', height: expanded ? 780 : 480, symbol: chartTv, interval: '60', timezone: 'Etc/UTC', theme: chartTheme, style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: false, calendar: false, support_host: 'https://www.tradingview.com' }}
-            />
+            <div style={{ height: expanded ? 780 : 480, transition: 'height 0.15s' }}>
+              <TradingViewWidget
+                scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+                height="100%"
+                config={{ width: '100%', height: '100%', symbol: chartTv, interval: '60', timezone: 'Etc/UTC', theme: chartTheme, style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: false, calendar: false, support_host: 'https://www.tradingview.com' }}
+              />
+            </div>
           </div>
 
           {/* Order ticket */}
@@ -285,7 +290,7 @@ export default function Trade() {
 
             <div>
               <label style={lbl}>Chart source</label>
-              <select value={chartTv} onChange={e => setChartTv(e.target.value)} style={inp}>
+              <select value={chartTv} onChange={e => { setChartTv(e.target.value); setSourceBySymbol(s => ({ ...s, [symbol]: e.target.value })); }} style={inp}>
                 {providerOptions(symbol).map(o => <option key={o.tv} value={o.tv}>{o.label}</option>)}
               </select>
             </div>
