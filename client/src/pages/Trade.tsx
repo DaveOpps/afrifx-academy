@@ -4,12 +4,29 @@ import TradingViewWidget from '../components/TradingViewWidget';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
-// Our instrument key -> TradingView chart symbol.
-const TV: Record<string, string> = {
-  EURUSD: 'OANDA:EURUSD', GBPUSD: 'OANDA:GBPUSD', USDJPY: 'OANDA:USDJPY',
-  AUDUSD: 'OANDA:AUDUSD', USDCAD: 'OANDA:USDCAD', XAUUSD: 'OANDA:XAUUSD',
-  BTCUSD: 'BINANCE:BTCUSDT', ETHUSD: 'BINANCE:ETHUSDT',
-};
+// Available chart data sources (providers) per instrument, for the "Chart source"
+// picker. The chart is for analysis only — trade execution always uses our own
+// (Yahoo Finance) price feed regardless of which chart provider is shown.
+function providerOptions(instSym: string): { label: string; tv: string }[] {
+  if (instSym === 'BTCUSD' || instSym === 'ETHUSD') {
+    const base = instSym.replace('USD', '');
+    return [
+      { label: 'Binance', tv: `BINANCE:${base}USDT` },
+      { label: 'Coinbase', tv: `COINBASE:${base}USD` },
+      { label: 'Bitstamp', tv: `BITSTAMP:${base}USD` },
+      { label: 'Kraken', tv: `KRAKEN:${base}USD` },
+      { label: 'Bybit', tv: `BYBIT:${base}USDT` },
+    ];
+  }
+  return [
+    { label: 'OANDA', tv: `OANDA:${instSym}` },
+    { label: 'Forex.com', tv: `FOREXCOM:${instSym}` },
+    { label: 'Pepperstone', tv: `PEPPERSTONE:${instSym}` },
+    { label: 'Saxo', tv: `SAXO:${instSym}` },
+    { label: 'FXCM', tv: `FXCM:${instSym}` },
+    { label: 'FX (IDC)', tv: `FX_IDC:${instSym}` },
+  ];
+}
 
 interface Inst { symbol: string; display: string; dp: number; contract: number; usdBase: boolean; pip: number; price: number | null; }
 interface Acct { balance: number; usedMargin: number; available: number; openPnl: number; equity: number; openCount: number; }
@@ -37,6 +54,7 @@ export default function Trade() {
   const [symbol, setSymbol] = useState('EURUSD');
   const [lots, setLots] = useState(0.1);
   const [expanded, setExpanded] = useState(false);
+  const [chartTv, setChartTv] = useState(providerOptions('EURUSD')[0].tv);
   const [orderKind, setOrderKind] = useState<OrderKind>('market');
   const [orderPrice, setOrderPrice] = useState('');
   const [sl, setSl] = useState('');
@@ -101,6 +119,9 @@ export default function Trade() {
   const loadHistory = useCallback(async () => {
     try { setHistory(await api.paperHistory()); } catch { /* ignore */ }
   }, []);
+
+  // When the instrument changes, reset the chart to its first available source.
+  useEffect(() => { setChartTv(providerOptions(symbol)[0].tv); }, [symbol]);
 
   useEffect(() => {
     if (!user) return;
@@ -205,10 +226,10 @@ export default function Trade() {
               {expanded ? '⤡ Collapse' : '⤢ Enlarge chart'}
             </button>
             <TradingViewWidget
-              key={expanded ? 'big' : 'small'}
+              key={`${chartTv}-${expanded ? 'big' : 'small'}`}
               scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
               height={expanded ? 780 : 480}
-              config={{ width: '100%', height: expanded ? 780 : 480, symbol: TV[symbol], interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: false, calendar: false, support_host: 'https://www.tradingview.com' }}
+              config={{ width: '100%', height: expanded ? 780 : 480, symbol: chartTv, interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: true, calendar: false, support_host: 'https://www.tradingview.com' }}
             />
           </div>
 
@@ -218,6 +239,13 @@ export default function Trade() {
               <label style={lbl}>Instrument</label>
               <select value={symbol} onChange={e => setSymbol(e.target.value)} style={inp}>
                 {insts.map(i => <option key={i.symbol} value={i.symbol}>{i.display}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={lbl}>Chart source</label>
+              <select value={chartTv} onChange={e => setChartTv(e.target.value)} style={inp}>
+                {providerOptions(symbol).map(o => <option key={o.tv} value={o.tv}>{o.label}</option>)}
               </select>
             </div>
 
