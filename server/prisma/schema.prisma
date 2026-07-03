@@ -250,15 +250,16 @@ model PaperTrade {
   symbol     String    // instrument key, e.g. "EURUSD"
   display    String    // "EUR/USD"
   side       String    // "buy" | "sell"
-  orderType  String    @default("market") // market | limit | stop
+  orderType  String    @default("market") // market | limit | stop | stop_limit
   lots       Float     @default(1)     // position size in lots
   stake      Float     // margin committed for this position (USD)
   leverage   Int       @default(1)
-  entryPrice Float     // fill price once open; trigger price while pending
+  entryPrice Float     // fill price once open; trigger (stop) price while pending
+  limitPrice Float?    // stop_limit only: the limit price to fill at once the stop triggers
   sl         Float?    // stop-loss price level
   tp         Float?    // take-profit price level
   exitPrice  Float?
-  closeReason String?  // manual | sl | tp | cancelled
+  closeReason String?  // manual | sl | tp | cancelled | stopout
   pnl        Float?    // realized profit/loss (set on close)
   status     String    @default("open") // pending | open | closed
   openedAt   DateTime  @default(now())  // for pending: time placed; set again when triggered

@@ -29,21 +29,29 @@ function providerOptions(instSym: string): { label: string; tv: string }[] {
 }
 
 interface Inst { symbol: string; display: string; dp: number; contract: number; usdBase: boolean; pip: number; price: number | null; }
-interface Acct { balance: number; usedMargin: number; available: number; openPnl: number; equity: number; openCount: number; }
+interface Acct { balance: number; usedMargin: number; available: number; openPnl: number; equity: number; openCount: number; pendingCount: number; marginLevel: number | null; marginCall: boolean; }
 interface Pos { id: number; symbol: string; display: string; side: string; lots: number; stake: number; entryPrice: number; sl: number | null; tp: number | null; price: number | null; pnl: number | null; openedAt: string; }
-interface Pending { id: number; symbol: string; display: string; side: string; orderType: string; lots: number; stake: number; entryPrice: number; sl: number | null; tp: number | null; openedAt: string; }
+interface Pending { id: number; symbol: string; display: string; side: string; orderType: string; lots: number; stake: number; entryPrice: number; limitPrice: number | null; sl: number | null; tp: number | null; openedAt: string; }
+
+// Human label for a pending order's type — "Buy Stop Limit" etc.
+const pendingTypeLabel = (p: { side: string; orderType: string }) =>
+  `${p.side === 'buy' ? 'Buy' : 'Sell'} ${p.orderType === 'limit' ? 'Limit' : p.orderType === 'stop_limit' ? 'Stop Limit' : 'Stop'}`;
 interface Hist { id: number; display: string; side: string; lots: number; entryPrice: number; exitPrice: number; pnl: number; closeReason: string | null; closedAt: string; }
 
 // MT5-style order-kind picker. "market" fills instantly; the rest are pending
-// orders that wait for price to reach a level the trader sets.
-type OrderKind = 'market' | 'buy_limit' | 'sell_limit' | 'buy_stop' | 'sell_stop';
+// orders that wait for price to reach a level the trader sets. Stop Limit needs
+// two prices: the Stop trigger and the Limit price it converts into once hit.
+type OrderKind = 'market' | 'buy_limit' | 'sell_limit' | 'buy_stop' | 'sell_stop' | 'buy_stoplimit' | 'sell_stoplimit';
 const ORDER_KINDS: { value: OrderKind; label: string }[] = [
-  { value: 'market',     label: 'Market Execution' },
-  { value: 'buy_limit',  label: 'Buy Limit' },
-  { value: 'sell_limit', label: 'Sell Limit' },
-  { value: 'buy_stop',   label: 'Buy Stop' },
-  { value: 'sell_stop',  label: 'Sell Stop' },
+  { value: 'market',        label: 'Market Execution' },
+  { value: 'buy_limit',     label: 'Buy Limit' },
+  { value: 'sell_limit',    label: 'Sell Limit' },
+  { value: 'buy_stop',      label: 'Buy Stop' },
+  { value: 'sell_stop',     label: 'Sell Stop' },
+  { value: 'buy_stoplimit', label: 'Buy Stop Limit' },
+  { value: 'sell_stoplimit',label: 'Sell Stop Limit' },
 ];
+const isStopLimitKind = (k: OrderKind) => k === 'buy_stoplimit' || k === 'sell_stoplimit';
 
 const money = (n: number | null | undefined) =>
   n == null ? '—' : (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -58,6 +66,7 @@ export default function Trade() {
   const [chartTv, setChartTv] = useState(providerOptions('EURUSD')[0].tv);
   const [orderKind, setOrderKind] = useState<OrderKind>('market');
   const [orderPrice, setOrderPrice] = useState('');
+  const [limitPriceInput, setLimitPriceInput] = useState(''); // Stop Limit only: the fill price once the stop triggers
   const [sl, setSl] = useState('');
   const [tp, setTp] = useState('');
   const [acct, setAcct] = useState<Acct | null>(null);
@@ -135,10 +144,18 @@ export default function Trade() {
 
   function selectOrderKind(kind: OrderKind) {
     setOrderKind(kind);
-    if (kind !== 'market' && orderPrice === '' && price != null && meta) {
-      // Sensible default: 10 pips away from market, on the correct side of the kind.
-      const dir = kind.startsWith('buy_limit') || kind === 'sell_stop' ? -1 : 1;
-      setOrderPrice((price + dir * meta.pip * 10).toFixed(dp));
+    if (kind === 'market' || price == null || !meta) return;
+    // Sensible defaults: 15 pips away from market (clear of the 10-pip stop level),
+    // on the correct side for the kind (below market for buy-limit/sell-stop-like,
+    // above for sell-limit/buy-stop-like).
+    const belowMarket = kind === 'buy_limit' || kind === 'sell_stop' || kind === 'sell_stoplimit';
+    const dir = belowMarket ? -1 : 1;
+    if (orderPrice === '') setOrderPrice((price + dir * meta.pip * 15).toFixed(dp));
+    if (isStopLimitKind(kind) && limitPriceInput === '') {
+      // The limit fill sits a further 5 pips beyond the stop, in the OPPOSITE
+      // direction (a Buy Stop Limit's limit price must be at/below its stop).
+      const stopVal = orderPrice === '' ? price + dir * meta.pip * 15 : Number(orderPrice);
+      setLimitPriceInput((stopVal - dir * meta.pip * 5).toFixed(dp));
     }
   }
 
@@ -155,12 +172,17 @@ export default function Trade() {
 
   async function placePending() {
     if (orderKind === 'market') return;
-    const [side, orderType] = orderKind.split('_') as ['buy' | 'sell', 'limit' | 'stop'];
+    const [side, kindPart] = orderKind.split('_') as ['buy' | 'sell', 'limit' | 'stop' | 'stoplimit'];
+    const orderType = kindPart === 'stoplimit' ? 'stop_limit' : kindPart;
     setMsg(null); setBusy(true);
     try {
-      await api.paperOpen({ symbol, side, lots, orderType, price: Number(orderPrice), sl: sl === '' ? null : Number(sl), tp: tp === '' ? null : Number(tp) });
+      await api.paperOpen({
+        symbol, side, lots, orderType, price: Number(orderPrice),
+        limitPrice: orderType === 'stop_limit' ? Number(limitPriceInput) : undefined,
+        sl: sl === '' ? null : Number(sl), tp: tp === '' ? null : Number(tp),
+      });
       setMsg({ t: 'ok', m: `${ORDER_KINDS.find(k => k.value === orderKind)?.label} order placed` });
-      setOrderPrice(''); setSl(''); setTp('');
+      setOrderPrice(''); setLimitPriceInput(''); setSl(''); setTp('');
       await refresh();
     } catch (e: any) { setMsg({ t: 'err', m: e.message }); }
     finally { setBusy(false); }
@@ -222,8 +244,16 @@ export default function Trade() {
           <Kpi label="Equity" value={money(acct?.equity)} tint="#c9a84c" />
           <Kpi label="Available" value={money(acct?.available)} />
           <Kpi label="Open P&L" value={money(acct?.openPnl)} color={upDown(acct?.openPnl)} />
+          <Kpi label="Margin Level" value={acct?.marginLevel == null ? '—' : `${acct.marginLevel.toFixed(0)}%`}
+            color={acct?.marginCall ? 'var(--down)' : undefined} />
           <Kpi label="Open Trades" value={String(acct?.openCount ?? 0)} />
         </div>
+
+        {acct?.marginCall && (
+          <div className="card" style={{ padding: '12px 16px', background: 'rgba(217,83,79,0.12)', border: '1px solid rgba(217,83,79,0.4)', color: '#ef7a7a', fontWeight: 700, fontSize: '0.85rem' }}>
+            ⚠ Margin Call — your margin level is below 100%. Close positions or your worst-losing trade will be force-closed (Stop Out) if it drops below 50%.
+          </div>
+        )}
 
         {/* Chart + trade panel */}
         <div style={{ display: 'grid', gridTemplateColumns: expanded ? '1fr' : 'minmax(0,1fr) 320px', gap: 20 }} className="tr-grid">
@@ -270,11 +300,22 @@ export default function Trade() {
 
             {orderKind !== 'market' && (
               <div>
-                <label style={lbl}>Order price (trigger)</label>
+                <label style={lbl}>{isStopLimitKind(orderKind) ? 'Stop price (trigger)' : 'Order price (trigger)'}</label>
                 <div style={{ display: 'flex', gap: 4 }}>
                   <StepBtn onClick={() => stepPrice(orderPrice, setOrderPrice, -1)} narrow>–</StepBtn>
                   <input type="number" step="any" placeholder={fmtP(price)} value={orderPrice} onChange={e => setOrderPrice(e.target.value)} className="no-spin" style={priceInp} />
                   <StepBtn onClick={() => stepPrice(orderPrice, setOrderPrice, 1)} narrow>+</StepBtn>
+                </div>
+              </div>
+            )}
+
+            {isStopLimitKind(orderKind) && (
+              <div>
+                <label style={lbl}>Limit price (fill once triggered)</label>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <StepBtn onClick={() => stepPrice(limitPriceInput, setLimitPriceInput, -1)} narrow>–</StepBtn>
+                  <input type="number" step="any" placeholder={fmtP(price)} value={limitPriceInput} onChange={e => setLimitPriceInput(e.target.value)} className="no-spin" style={priceInp} />
+                  <StepBtn onClick={() => stepPrice(limitPriceInput, setLimitPriceInput, 1)} narrow>+</StepBtn>
                 </div>
               </div>
             )}
@@ -341,7 +382,7 @@ export default function Trade() {
               </div>
             ) : (
               /* Place pending order */
-              <button onClick={placePending} disabled={busy || price == null || orderPrice === ''}
+              <button onClick={placePending} disabled={busy || price == null || orderPrice === '' || (isStopLimitKind(orderKind) && limitPriceInput === '')}
                 className="btn btn-gold" style={{ width: '100%', fontWeight: 800 }}>
                 {busy ? '…' : `Place ${ORDER_KINDS.find(k => k.value === orderKind)?.label}`}
               </button>
@@ -399,8 +440,9 @@ export default function Trade() {
                       left={`TP  ·  +${money(cash(p.tp))}  ·  ${pts(p.tp).toLocaleString()} pts`} right={String(p.tp)} />
                   )}
                   <OverlayLine color="#c9a84c" bg="rgba(201,168,76,0.10)" dashed
-                    left={`${p.side.toUpperCase()} ${p.orderType.toUpperCase()} ${p.lots}  ·  `}
-                    leftExtra={<b style={{ color: '#c9a84c' }}>pending</b>} right={String(p.entryPrice)} />
+                    left={`${pendingTypeLabel(p)} ${p.lots}  ·  `}
+                    leftExtra={<b style={{ color: '#c9a84c' }}>pending</b>}
+                    right={p.orderType === 'stop_limit' ? `${p.entryPrice} → ${p.limitPrice}` : String(p.entryPrice)} />
                   {p.sl != null && (
                     <OverlayLine color="#d9534f" bg="rgba(217,83,79,0.07)" dashed
                       left={`SL  ·  -${money(cash(p.sl))}  ·  ${pts(p.sl).toLocaleString()} pts`} right={String(p.sl)} />
@@ -475,9 +517,9 @@ export default function Trade() {
                     <Fragment key={p.id}>
                       <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                         <td style={td}>{p.display}</td>
-                        <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{p.side === 'buy' ? 'Buy' : 'Sell'} {p.orderType === 'limit' ? 'Limit' : 'Stop'}</td>
+                        <td style={{ ...td, color: p.side === 'buy' ? 'var(--up)' : 'var(--down)', fontWeight: 700 }}>{pendingTypeLabel(p)}</td>
                         <td style={td}>{p.lots}</td>
-                        <td style={{ ...td, fontFamily: 'monospace' }}>{p.entryPrice}</td>
+                        <td style={{ ...td, fontFamily: 'monospace' }}>{p.orderType === 'stop_limit' ? `${p.entryPrice} → ${p.limitPrice}` : p.entryPrice}</td>
                         <td style={{ ...td, fontFamily: 'monospace', color: '#ef7a7a' }}>{sltpCell(p, p.sl, measureLevel)}</td>
                         <td style={{ ...td, fontFamily: 'monospace', color: '#5bbf7b' }}>{sltpCell(p, p.tp, measureLevel)}</td>
                         <td style={{ ...td, whiteSpace: 'nowrap' }}>
@@ -507,7 +549,7 @@ export default function Trade() {
             <h3 style={{ marginTop: 0 }}>Trade History</h3>
             <div style={{ overflowX: 'auto' }}>
               <table style={tbl}>
-                <thead><tr>{['Instrument', 'Side', 'Lots', 'Entry', 'Exit', 'P&L', 'Closed'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Instrument', 'Side', 'Lots', 'Entry', 'Exit', 'P&L', 'Reason', 'Closed'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {history.map(h => (
                     <tr key={h.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -517,6 +559,7 @@ export default function Trade() {
                       <td style={{ ...td, fontFamily: 'monospace' }}>{h.entryPrice}</td>
                       <td style={{ ...td, fontFamily: 'monospace' }}>{h.exitPrice}</td>
                       <td style={{ ...td, color: upDown(h.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(h.pnl)}</td>
+                      <td style={td}><ReasonBadge reason={h.closeReason} /></td>
                       <td style={{ ...td, color: '#9a9a9a', fontSize: '0.75rem' }}>{new Date(h.closedAt).toLocaleString()}</td>
                     </tr>
                   ))}
@@ -632,6 +675,18 @@ function ModifyEditor({ trade, inst, busy, onSave, onCancel }: {
       </div>
     </div>
   );
+}
+
+const REASON_STYLE: Record<string, { label: string; color: string }> = {
+  manual:    { label: 'Manual', color: '#9a9a9a' },
+  sl:        { label: 'Stop Loss', color: '#ef7a7a' },
+  tp:        { label: 'Take Profit', color: '#5bbf7b' },
+  cancelled: { label: 'Cancelled', color: '#9a9a9a' },
+  stopout:   { label: 'Stop Out', color: '#ff4d4d' },
+};
+function ReasonBadge({ reason }: { reason: string | null }) {
+  const r = reason ? REASON_STYLE[reason] ?? { label: reason, color: '#9a9a9a' } : { label: '—', color: '#9a9a9a' };
+  return <span style={{ fontSize: '0.7rem', fontWeight: 700, color: r.color, padding: '2px 8px', borderRadius: 5, background: `${r.color}22`, whiteSpace: 'nowrap' }}>{r.label}</span>;
 }
 
 function StepBtn({ children, onClick, disabled, narrow }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; narrow?: boolean }) {

@@ -23,6 +23,22 @@ export const INSTRUMENTS = {
 // Demo account default leverage, used only to size the margin requirement.
 export const MARGIN_LEVERAGE = 100; // 1:100
 
+// MT5-style broker rules for this demo:
+export const STOP_LEVEL_PIPS = 10;   // min distance an SL/TP/pending trigger must keep from the reference price
+export const FREEZE_LEVEL_PIPS = 3;  // min distance before a level can no longer be modified/cancelled
+export const MARGIN_CALL_LEVEL = 100; // % margin level — warning only
+export const STOP_OUT_LEVEL = 50;     // % margin level — forces liquidation of the worst-losing position
+const MAX_SLIPPAGE_POINTS = 3;         // random slippage magnitude, in price "points" (10^-dp)
+
+// Random slippage in price units. Pass `dir` = +1/-1 for an adverse-only slip
+// (stops/SL always fill worse, matching real MT5 behavior on breakouts/gaps);
+// pass null for a market order's ordinary two-sided slippage.
+export function randomSlippage(dp, dir) {
+  const magnitude = (Math.random() * MAX_SLIPPAGE_POINTS) / Math.pow(10, dp);
+  if (dir == null) return (Math.random() < 0.5 ? -1 : 1) * magnitude;
+  return dir * magnitude;
+}
+
 const cache = new Map(); // symbol -> { price, ts }
 const TTL = 5000;        // 5s cache
 
