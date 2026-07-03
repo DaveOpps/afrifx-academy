@@ -86,7 +86,7 @@ export default function Dashboard() {
   }
 
   return (
-    <DashboardLayout title="Omni Dashboard" subtitle={`${greeting()}, ${firstName} 👋 · ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+    <DashboardLayout title="AfriFX Dashboard" subtitle={`${greeting()}, ${firstName} 👋 · ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}
       actions={<Link to="/courses" className="btn btn-gold btn-sm">+ Enroll</Link>}>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

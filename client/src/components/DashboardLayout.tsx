@@ -27,7 +27,7 @@ const ICONS: Record<string, ReactNode> = {
 };
 
 const STUDENT_NAV = [
-  { to: '/dashboard',    label: 'Omni Dashboard', icon: 'dashboard' },
+  { to: '/dashboard',    label: 'AfriFX Dashboard', icon: 'dashboard' },
   { to: '/courses',      label: 'Courses',      icon: 'courses' },
   { to: '/markets',      label: 'Live Markets', icon: 'signals' },
   { to: '/trade',        label: 'Paper Trading',icon: 'analytics' },
@@ -43,7 +43,7 @@ const STUDENT_NAV = [
 ];
 
 const ADMIN_NAV = [
-  { to: '/admin',               label: 'Omni Dashboard', icon: 'dashboard' },
+  { to: '/admin',               label: 'AfriFX Dashboard', icon: 'dashboard' },
   { to: '/dashboard',           label: 'Dashboard',    icon: 'dashboard' },
   { to: '/admin/students',      label: 'Students',     icon: 'users' },
   { to: '/admin/courses',       label: 'Courses',      icon: 'courses' },

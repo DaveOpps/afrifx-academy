@@ -22,7 +22,7 @@ const ICONS = {
     search: _jsx(Icon, { d: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" }),
 };
 const STUDENT_NAV = [
-    { to: '/dashboard', label: 'Omni Dashboard', icon: 'dashboard' },
+    { to: '/dashboard', label: 'AfriFX Dashboard', icon: 'dashboard' },
     { to: '/courses', label: 'Courses', icon: 'courses' },
     { to: '/markets', label: 'Live Markets', icon: 'signals' },
     { to: '/trade', label: 'Paper Trading', icon: 'analytics' },
@@ -37,7 +37,7 @@ const STUDENT_NAV = [
     { to: '/pricing', label: 'Membership', icon: 'trophy' },
 ];
 const ADMIN_NAV = [
-    { to: '/admin', label: 'Omni Dashboard', icon: 'dashboard' },
+    { to: '/admin', label: 'AfriFX Dashboard', icon: 'dashboard' },
     { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { to: '/admin/students', label: 'Students', icon: 'users' },
     { to: '/admin/courses', label: 'Courses', icon: 'courses' },
