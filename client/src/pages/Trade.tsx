@@ -54,6 +54,7 @@ export default function Trade() {
   const [symbol, setSymbol] = useState('EURUSD');
   const [lots, setLots] = useState(0.1);
   const [expanded, setExpanded] = useState(false);
+  const [chartTheme, setChartTheme] = useState<'dark' | 'light'>('dark');
   const [chartTv, setChartTv] = useState(providerOptions('EURUSD')[0].tv);
   const [orderKind, setOrderKind] = useState<OrderKind>('market');
   const [orderPrice, setOrderPrice] = useState('');
@@ -221,15 +222,19 @@ export default function Trade() {
         {/* Chart + trade panel */}
         <div style={{ display: 'grid', gridTemplateColumns: expanded ? '1fr' : 'minmax(0,1fr) 320px', gap: 20 }} className="tr-grid">
           <div className="card card-premium" style={{ padding: 8, position: 'relative' }}>
-            <button onClick={() => setExpanded(v => !v)} className="btn btn-outline btn-sm"
-              style={{ position: 'absolute', top: 16, right: 16, zIndex: 3 }}>
-              {expanded ? '⤡ Collapse' : '⤢ Enlarge chart'}
-            </button>
+            <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 3, display: 'flex', gap: 6 }}>
+              <button onClick={() => setChartTheme(t => t === 'dark' ? 'light' : 'dark')} className="btn btn-outline btn-sm">
+                {chartTheme === 'dark' ? '☀ Light' : '🌙 Dark'}
+              </button>
+              <button onClick={() => setExpanded(v => !v)} className="btn btn-outline btn-sm">
+                {expanded ? '⤡ Collapse' : '⤢ Enlarge chart'}
+              </button>
+            </div>
             <TradingViewWidget
-              key={`${chartTv}-${expanded ? 'big' : 'small'}`}
+              key={`${chartTv}-${chartTheme}-${expanded ? 'big' : 'small'}`}
               scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
               height={expanded ? 780 : 480}
-              config={{ width: '100%', height: expanded ? 780 : 480, symbol: chartTv, interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: true, calendar: false, support_host: 'https://www.tradingview.com' }}
+              config={{ width: '100%', height: expanded ? 780 : 480, symbol: chartTv, interval: '60', timezone: 'Etc/UTC', theme: chartTheme, style: '1', locale: 'en', hide_side_toolbar: false, allow_symbol_change: true, calendar: false, support_host: 'https://www.tradingview.com' }}
             />
           </div>
 
