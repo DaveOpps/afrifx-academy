@@ -18,6 +18,7 @@ import StudentIdCard  from './pages/StudentIdCard';
 import Verify         from './pages/Verify';
 import Resources      from './pages/Resources';
 import About          from './pages/About';
+import Tour           from './pages/Tour';
 import Pricing        from './pages/Pricing';
 import Performance    from './pages/Performance';
 import Markets        from './pages/Markets';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/forgot"        element={<ForgotPassword />} />
           <Route path="/reset/:token"  element={<ResetPassword />} />
           <Route path="/about"         element={<About />} />
+          <Route path="/tour"          element={<Tour />} />
           <Route path="/resources"     element={<Resources />} />
           <Route path="/pricing"       element={<Pricing />} />
           <Route path="/performance"   element={<Performance />} />
