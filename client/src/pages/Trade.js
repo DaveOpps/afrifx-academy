@@ -257,14 +257,14 @@ export default function Trade() {
         }
     }
     async function reset() {
-        if (!confirm('Reset your demo account to $10,000 and clear all trades?'))
+        if (!confirm('Reset your balance to $10,000 and close all open/pending positions? Your closed trade history and leaderboard record are kept.'))
             return;
         setBusy(true);
         try {
             await api.paperReset();
             await refresh();
             await loadHistory();
-            setMsg({ t: 'ok', m: 'Demo account reset to $10,000' });
+            setMsg({ t: 'ok', m: 'Balance reset to $10,000 — your trade history is unchanged' });
         }
         finally {
             setBusy(false);

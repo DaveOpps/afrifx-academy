@@ -408,8 +408,12 @@ router.post('/close/:id', requireAuth, async (req, res) => {
 });
 
 // Reset the demo account
+// Resets the trader's demo balance and clears any live exposure (open/pending
+// positions). Closed trades are NEVER deleted here — every trade's outcome
+// stays on permanent record for the trader's history and the leaderboard,
+// even after they reset their balance to start fresh.
 router.post('/reset', requireAuth, async (req, res) => {
-  await prisma.paperTrade.deleteMany({ where: { userId: req.user.id } });
+  await prisma.paperTrade.deleteMany({ where: { userId: req.user.id, status: { in: ['open', 'pending'] } } });
   await prisma.user.update({ where: { id: req.user.id }, data: { paperBalance: STARTING_BALANCE } });
   res.json({ ok: true, balance: STARTING_BALANCE });
 });
