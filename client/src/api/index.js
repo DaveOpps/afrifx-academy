@@ -59,6 +59,8 @@ export const api = {
     getQuiz: (id) => req('GET', `/quizzes/${id}`),
     submitQuiz: (id, answers) => req('POST', `/quizzes/${id}/submit`, { answers }),
     createQuiz: (b) => req('POST', '/quizzes', b),
+    updateQuiz: (id, questions) => req('PUT', `/quizzes/${id}`, { questions }),
+    deleteQuiz: (id) => req('DELETE', `/quizzes/${id}`),
     // Certificates
     myCerts: () => req('GET', '/certificates/my'),
     claimCert: (courseId) => req('POST', '/certificates/claim', { courseId }),

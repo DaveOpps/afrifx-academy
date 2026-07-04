@@ -66,6 +66,8 @@ export const api = {
   getQuiz:     (id: number)       => req('GET',  `/quizzes/${id}`),
   submitQuiz:  (id: number, answers: number[]) => req('POST', `/quizzes/${id}/submit`, { answers }),
   createQuiz:  (b: unknown)       => req('POST', '/quizzes', b),
+  updateQuiz:  (id: number, questions: unknown) => req('PUT', `/quizzes/${id}`, { questions }),
+  deleteQuiz:  (id: number)       => req('DELETE', `/quizzes/${id}`),
 
   // Certificates
   myCerts:     ()                 => req('GET',  '/certificates/my'),

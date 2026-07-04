@@ -7,7 +7,7 @@ const router = Router();
 // Public: list all courses
 router.get('/', async (req, res) => {
   const courses = await prisma.course.findMany({
-    include: { modules: { include: { lessons: true } }, _count: { select: { enrollments: true } } },
+    include: { modules: { include: { lessons: true, quizzes: true } }, _count: { select: { enrollments: true } } },
     orderBy: { createdAt: 'desc' }
   });
   res.json(courses);
