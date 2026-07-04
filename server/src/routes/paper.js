@@ -257,6 +257,31 @@ router.get('/history', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
+// Leaderboard: ranks every trader by realized P&L across all their closed trades.
+router.get('/leaderboard', requireAuth, async (req, res) => {
+  try {
+    const closed = await prisma.paperTrade.findMany({
+      where: { status: 'closed', pnl: { not: null } },
+      select: { userId: true, pnl: true, user: { select: { name: true } } },
+    });
+    const byUser = new Map();
+    for (const t of closed) {
+      const row = byUser.get(t.userId) || { userId: t.userId, name: t.user.name, netPnl: 0, trades: 0, wins: 0 };
+      row.netPnl += t.pnl;
+      row.trades += 1;
+      if (t.pnl > 0) row.wins += 1;
+      byUser.set(t.userId, row);
+    }
+    const rows = Array.from(byUser.values()).map(r => ({
+      ...r,
+      netPnl: Math.round(r.netPnl * 100) / 100,
+      winRate: r.trades ? Math.round((r.wins / r.trades) * 100) : 0,
+    }));
+    rows.sort((a, b) => b.netPnl - a.netPnl);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Place an order — market (fills instantly, with slippage), or pending
 // (limit/stop/stop_limit, waits for a trigger).
 router.post('/open', requireAuth, async (req, res) => {

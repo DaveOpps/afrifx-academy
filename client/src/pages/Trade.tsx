@@ -37,6 +37,7 @@ interface Pending { id: number; symbol: string; display: string; side: string; o
 const pendingTypeLabel = (p: { side: string; orderType: string }) =>
   `${p.side === 'buy' ? 'Buy' : 'Sell'} ${p.orderType === 'limit' ? 'Limit' : p.orderType === 'stop_limit' ? 'Stop Limit' : 'Stop'}`;
 interface Hist { id: number; display: string; side: string; lots: number; entryPrice: number; exitPrice: number; pnl: number; closeReason: string | null; closedAt: string; }
+interface LBRow { userId: number; name: string; netPnl: number; trades: number; wins: number; winRate: number; }
 
 // MT5-style order-kind picker. "market" fills instantly; the rest are pending
 // orders that wait for price to reach a level the trader sets. Stop Limit needs
@@ -77,6 +78,8 @@ export default function Trade() {
   const [positions, setPositions] = useState<Pos[]>([]);
   const [pending, setPending] = useState<Pending[]>([]);
   const [history, setHistory] = useState<Hist[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LBRow[]>([]);
+  const [lbView, setLbView] = useState<'top' | 'losers'>('top');
   const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -136,15 +139,20 @@ export default function Trade() {
     try { setHistory(await api.paperHistory()); } catch { /* ignore */ }
   }, []);
 
+  const loadLeaderboard = useCallback(async () => {
+    try { setLeaderboard(await api.paperLeaderboard()); } catch { /* ignore */ }
+  }, []);
+
   // When the instrument changes, reset the chart to its first available source.
   useEffect(() => { setChartTv(sourceBySymbol[symbol] ?? providerOptions(symbol)[0].tv); }, [symbol]);
 
   useEffect(() => {
     if (!user) return;
-    refresh(); loadHistory();
+    refresh(); loadHistory(); loadLeaderboard();
     const t = setInterval(() => { refresh(); loadHistory(); }, 5000); // live P&L + catch SL/TP auto-closes
-    return () => clearInterval(t);
-  }, [user, refresh, loadHistory]);
+    const lbT = setInterval(loadLeaderboard, 20000); // leaderboard changes less often
+    return () => { clearInterval(t); clearInterval(lbT); };
+  }, [user, refresh, loadHistory, loadLeaderboard]);
 
   function selectOrderKind(kind: OrderKind) {
     setOrderKind(kind);
@@ -218,7 +226,7 @@ export default function Trade() {
 
   async function close(id: number) {
     setBusy(true);
-    try { await api.paperClose(id); await refresh(); await loadHistory(); }
+    try { await api.paperClose(id); await refresh(); await loadHistory(); await loadLeaderboard(); }
     catch (e: any) { setMsg({ t: 'err', m: e.message }); }
     finally { setBusy(false); }
   }
@@ -566,6 +574,35 @@ export default function Trade() {
                       <td style={{ ...td, color: upDown(h.pnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(h.pnl)}</td>
                       <td style={td}><ReasonBadge reason={h.closeReason} /></td>
                       <td style={{ ...td, color: '#9a9a9a', fontSize: '0.75rem' }}>{new Date(h.closedAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Trading leaderboard */}
+        {leaderboard.length > 0 && (
+          <div className="card card-premium">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+              <h3 style={{ margin: 0 }}>🏆 Trading Leaderboard</h3>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setLbView('top')} className={`btn btn-sm ${lbView === 'top' ? 'btn-gold' : 'btn-outline'}`}>Top Traders</button>
+                <button onClick={() => setLbView('losers')} className={`btn btn-sm ${lbView === 'losers' ? 'btn-gold' : 'btn-outline'}`}>Top Losers</button>
+              </div>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tbl}>
+                <thead><tr>{['Rank', 'Trader', 'Net P&L', 'Trades', 'Win Rate'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {(lbView === 'top' ? leaderboard : [...leaderboard].reverse()).map((r, i) => (
+                    <tr key={r.userId} style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: r.userId === user.id ? 'rgba(201,168,76,0.08)' : undefined }}>
+                      <td style={{ ...td, fontWeight: 800, fontSize: '1rem' }}>{lbView === 'top' && i < 3 ? ['🥇', '🥈', '🥉'][i] : `#${i + 1}`}</td>
+                      <td style={{ ...td, fontWeight: r.userId === user.id ? 800 : 400 }}>{r.name}{r.userId === user.id ? ' (you)' : ''}</td>
+                      <td style={{ ...td, color: upDown(r.netPnl), fontWeight: 700, fontFamily: 'monospace' }}>{money(r.netPnl)}</td>
+                      <td style={td}>{r.trades}</td>
+                      <td style={td}>{r.winRate}%</td>
                     </tr>
                   ))}
                 </tbody>

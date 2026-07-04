@@ -132,6 +132,7 @@ export const api = {
     paperPositions: () => req('GET', '/paper/positions'),
     paperPending: () => req('GET', '/paper/pending'),
     paperHistory: () => req('GET', '/paper/history'),
+    paperLeaderboard: () => req('GET', '/paper/leaderboard'),
     paperOpen: (b) => req('POST', '/paper/open', b),
     paperModify: (id, b) => req('POST', `/paper/modify/${id}`, b),
     paperClose: (id) => req('POST', `/paper/close/${id}`),
