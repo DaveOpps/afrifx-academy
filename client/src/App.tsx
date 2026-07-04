@@ -34,6 +34,7 @@ import AdminCourses   from './pages/admin/AdminCourses';
 import AdminCerts     from './pages/admin/AdminCerts';
 import AdminAnnouncements from './pages/admin/AdminAnnouncements';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
+import AdminPerformance from './pages/admin/AdminPerformance';
 import AdminMeetings  from './pages/admin/AdminMeetings';
 import AdminSignals   from './pages/admin/AdminSignals';
 import AdminApplications from './pages/admin/AdminApplications';
@@ -84,6 +85,7 @@ export default function App() {
           <Route path="/admin/courses"         element={<Guard role="admin"><AdminCourses /></Guard>} />
           <Route path="/admin/announcements"   element={<Guard role="admin"><AdminAnnouncements /></Guard>} />
           <Route path="/admin/analytics"       element={<Guard role="admin"><AdminAnalytics /></Guard>} />
+          <Route path="/admin/performance"     element={<Guard role="admin"><AdminPerformance /></Guard>} />
           <Route path="/admin/meetings"        element={<Guard role="admin"><AdminMeetings /></Guard>} />
           <Route path="/admin/certificates"    element={<Guard role="admin"><AdminCerts /></Guard>} />
           <Route path="/admin/signals"         element={<Guard role="admin"><AdminSignals /></Guard>} />

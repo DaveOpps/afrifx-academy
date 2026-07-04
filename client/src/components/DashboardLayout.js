@@ -47,6 +47,7 @@ const ADMIN_NAV = [
     { to: '/admin/announcements', label: 'Announcements', icon: 'announce' },
     { to: '/admin/applications', label: 'Applications', icon: 'users' },
     { to: '/admin/analytics', label: 'Analytics', icon: 'analytics' },
+    { to: '/admin/performance', label: 'Performance', icon: 'trophy' },
     { to: '/admin/certificates', label: 'Certificates', icon: 'cert' },
 ];
 export default function DashboardLayout({ title, subtitle, children, actions }) {

@@ -120,6 +120,38 @@ router.get('/students/:id', requireAdmin, async (req, res) => {
   res.json(student);
 });
 
+// Full closed-trade history for one student (admin drill-down from the trading leaderboard)
+router.get('/students/:id/trades', requireAdmin, async (req, res) => {
+  const trades = await prisma.paperTrade.findMany({
+    where: { userId: Number(req.params.id), status: 'closed' },
+    orderBy: { closedAt: 'desc' },
+  });
+  res.json(trades);
+});
+
+// Ranks students by quiz performance: average score, quizzes taken, perfect scores.
+router.get('/quiz-performance', requireAdmin, async (req, res) => {
+  try {
+    const results = await prisma.quizResult.findMany({
+      select: { userId: true, score: true, user: { select: { name: true } } },
+    });
+    const byUser = new Map();
+    for (const r of results) {
+      const row = byUser.get(r.userId) || { userId: r.userId, name: r.user.name, taken: 0, totalScore: 0, perfect: 0 };
+      row.taken += 1;
+      row.totalScore += r.score;
+      if (r.score === 100) row.perfect += 1;
+      byUser.set(r.userId, row);
+    }
+    const rows = Array.from(byUser.values()).map(r => ({
+      userId: r.userId, name: r.name, taken: r.taken, perfect: r.perfect,
+      avgScore: Math.round(r.totalScore / r.taken),
+    }));
+    rows.sort((a, b) => b.avgScore - a.avgScore || b.taken - a.taken);
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Issue certificate manually
 router.post('/certificates/issue', requireAdmin, async (req, res) => {
   try {
