@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../utils/db.js';
-import { requireAdmin } from '../middleware/auth.js';
-import { requireSignalAccess } from '../middleware/access.js';
+import { requireAdmin, requireAuth } from '../middleware/auth.js';
 import { sendSignalAlert } from '../utils/email.js';
 
 const router = Router();
@@ -74,7 +73,7 @@ router.get('/performance', async (req, res) => {
 });
 
 // GET /api/signals — all signals (subscribers only)
-router.get('/', requireSignalAccess, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { type, status } = req.query;
     const where = {};
@@ -86,7 +85,7 @@ router.get('/', requireSignalAccess, async (req, res) => {
 });
 
 // GET /api/signals/latest — latest 5 active (subscribers only)
-router.get('/latest', requireSignalAccess, async (req, res) => {
+router.get('/latest', requireAuth, async (req, res) => {
   try {
     const signals = await prisma.signal.findMany({
       where: { status: 'active' },

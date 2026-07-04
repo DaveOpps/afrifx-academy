@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api';
-import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 
 const TYPES = ['All', 'Forex', 'Gold', 'Crypto', 'Indices'];
@@ -19,13 +17,10 @@ const RESULT_BADGE: Record<string, string> = {
 };
 
 export default function Signals() {
-  const { refresh } = useAuth();
   const [signals, setSignals] = useState<any[]>([]);
   const [type, setType] = useState('All');
   const [status, setStatus] = useState('active');
   const [loading, setLoading] = useState(true);
-  const [locked, setLocked] = useState(false);
-  const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -33,45 +28,10 @@ export default function Signals() {
     if (type !== 'All') params.set('type', type);
     if (status !== 'All') params.set('status', status);
     api.getSignals(params.toString())
-      .then(s => { setSignals(s); setLocked(false); })
-      .catch(e => { if (String(e.message).includes('signal_subscription_required')) setLocked(true); })
+      .then(s => setSignals(s))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [type, status]);
-
-  async function subscribe() {
-    if (!confirm('Subscribe to daily signals for $5/month? (demo checkout — no real charge)')) return;
-    setSubscribing(true);
-    try {
-      await api.subscribeSignals();
-      refresh();
-      setLocked(false);
-      // reload
-      setLoading(true);
-      const data = await api.getSignals(`status=${status}`);
-      setSignals(data);
-    } catch (e: any) { alert(e.message); }
-    finally { setSubscribing(false); setLoading(false); }
-  }
-
-  if (locked) {
-    return (
-      <DashboardLayout title="Trading Signals" subtitle="Daily Forex, Gold, Crypto and Indices signals.">
-        <div className="card card-premium" style={{ textAlign: 'center', padding: '56px 24px', maxWidth: 540, margin: '0 auto', background: 'linear-gradient(135deg,rgba(201,168,76,0.1),rgba(26,107,60,0.06))', border: '1px solid rgba(201,168,76,0.3)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: 14 }}>🔒</div>
-          <h2 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.5rem', marginBottom: 10 }}>Signals are for subscribers</h2>
-          <p style={{ color: '#c8c8c8', marginBottom: 8, lineHeight: 1.7 }}>
-            Get daily Forex, Gold, Crypto & Indices signals with entry, stop loss and multiple take-profit levels.
-          </p>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#c9a84c', margin: '16px 0 6px' }}>$5<span style={{ fontSize: '0.9rem', color: '#9a9a9a' }}>/month</span></div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 18 }}>
-            <button className="btn btn-gold" onClick={subscribe} disabled={subscribing}>{subscribing ? 'Processing...' : 'Subscribe — $5/mo'}</button>
-            <Link to="/pricing" className="btn btn-outline">Or go VVIP (lifetime)</Link>
-          </div>
-          <p style={{ fontSize: '0.75rem', color: '#666', marginTop: 18 }}>Demo checkout — wire up Mobile Money / Stripe with your keys to charge for real.</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout title="Trading Signals" subtitle="Daily Forex, Gold, Crypto and Indices signals from our expert analysts.">
