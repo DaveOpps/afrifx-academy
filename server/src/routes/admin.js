@@ -89,6 +89,16 @@ router.post('/students/:id/reset-password', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Every account on the platform, any role — for super-admin account overview
+// and password resets (including other admin/instructor accounts).
+router.get('/accounts', requireAdmin, async (req, res) => {
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, role: true, phone: true, studentId: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json(users);
+});
+
 // All students with progress
 router.get('/students', requireAdmin, async (req, res) => {
   const students = await prisma.user.findMany({

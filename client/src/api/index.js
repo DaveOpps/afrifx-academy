@@ -124,6 +124,7 @@ export const api = {
     setStudentRole: (id, role) => req('POST', `/admin/students/${id}/role`, { role }),
     adminAnalytics: () => req('GET', '/admin/analytics'),
     adminStudents: () => req('GET', '/admin/students'),
+    adminAccounts: () => req('GET', '/admin/accounts'),
     adminStudent: (id) => req('GET', `/admin/students/${id}`),
     adminStudentTrades: (id) => req('GET', `/admin/students/${id}/trades`),
     adminQuizPerformance: () => req('GET', '/admin/quiz-performance'),

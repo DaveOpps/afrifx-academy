@@ -30,6 +30,7 @@ import PartnerSeminar from './pages/PartnerSeminar';
 import AdminLogin     from './pages/admin/AdminLogin';
 import AdminDash      from './pages/admin/AdminDash';
 import AdminStudents  from './pages/admin/AdminStudents';
+import AdminAccounts  from './pages/admin/AdminAccounts';
 import AdminStudent   from './pages/admin/AdminStudent';
 import AdminCourses   from './pages/admin/AdminCourses';
 import AdminCerts     from './pages/admin/AdminCerts';
@@ -83,6 +84,7 @@ export default function App() {
           <Route path="/admin/login"   element={<AdminLogin />} />
           <Route path="/admin"         element={<Guard role="admin"><AdminDash /></Guard>} />
           <Route path="/admin/students"        element={<Guard role="admin"><AdminStudents /></Guard>} />
+          <Route path="/admin/accounts"        element={<Guard role="admin"><AdminAccounts /></Guard>} />
           <Route path="/admin/students/:id"    element={<Guard role="admin"><AdminStudent /></Guard>} />
           <Route path="/admin/courses"         element={<Guard role="admin"><AdminCourses /></Guard>} />
           <Route path="/admin/announcements"   element={<Guard role="admin"><AdminAnnouncements /></Guard>} />

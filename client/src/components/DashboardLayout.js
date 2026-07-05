@@ -20,6 +20,7 @@ const ICONS = {
     profile: _jsx(Icon, { d: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" }),
     logout: _jsx(Icon, { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5-5-5m5 5H9" }),
     search: _jsx(Icon, { d: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" }),
+    lock: _jsx(Icon, { d: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" }),
 };
 const STUDENT_NAV = [
     { to: '/dashboard', label: 'AfriFX Dashboard', icon: 'dashboard' },
@@ -40,6 +41,7 @@ const ADMIN_NAV = [
     { to: '/admin', label: 'AfriFX Dashboard', icon: 'dashboard' },
     { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { to: '/admin/students', label: 'Students', icon: 'users' },
+    { to: '/admin/accounts', label: 'Accounts', icon: 'lock' },
     { to: '/admin/courses', label: 'Courses', icon: 'courses' },
     { to: '/admin/signals', label: 'Signals', icon: 'signals' },
     { to: '/trade', label: 'Paper Trading', icon: 'analytics' },
