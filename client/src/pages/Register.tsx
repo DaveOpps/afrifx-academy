@@ -40,8 +40,8 @@ export default function Register() {
           <PasswordInput required placeholder="Min. 6 characters" value={form.password} onChange={v => setForm({...form, password: v})} autoComplete="new-password" />
         </div>
         <div className="form-group">
-          <label>Phone (optional)</label>
-          <input placeholder="+233 24 000 0000" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+          <label>Phone</label>
+          <input required placeholder="+233 24 000 0000" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
         </div>
         <button type="submit" className="btn btn-gold" style={{ marginTop: 4 }} disabled={loading}>
           {loading ? <><span className="spinner"></span> Creating account...</> : 'Create Account →'}
