@@ -5,6 +5,112 @@ import { api } from '../api';
 
 const GREEN = '#0d4d2e';
 const GOLD = '#c9a84c';
+const SEAL_DARK = '#0d1f12';
+
+function SealBadge({ size = 100 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 200 200" style={{ flexShrink: 0 }}>
+      <defs>
+        <path id="sealTopArc" d="M 22 92 A 78 78 0 0 1 178 92" fill="none" />
+        <path id="sealBottomArc" d="M 178 118 A 78 78 0 0 1 22 118" fill="none" />
+      </defs>
+      <circle cx="100" cy="100" r="95" fill={SEAL_DARK} stroke={GOLD} strokeWidth="4" />
+      <circle cx="100" cy="100" r="80" fill="none" stroke={GOLD} strokeWidth="1.2" opacity="0.8" />
+      <path d="M100 58c10 0 17 6 19 15 6 2 10 8 9 15 5 4 7 11 4 18 4 7 3 16-3 21 1 7-2 14-9 16-1 6-8 10-14 8-3 5-10 5-13 0-7 1-13-3-14-9-6-1-10-7-8-13-5-4-6-11-3-17-4-6-3-14 2-19-1-7 3-13 9-15 1-6 6-10 12-10z" fill={GREEN} />
+      <polyline points="72,126 86,110 98,118 126,80" fill="none" stroke={GOLD} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+      <polygon points="126,80 114,83 123,93" fill={GOLD} />
+      <circle cx="126" cy="116" r="11" fill={GOLD} />
+      <text x="126" y="120.5" fontSize="12" fontWeight="800" fill={SEAL_DARK} textAnchor="middle">₿</text>
+      <text fontSize="12.5" fontWeight="800" fill={GOLD} letterSpacing="1.5">
+        <textPath href="#sealTopArc" startOffset="50%" textAnchor="middle">AFRIFX ACADEMY</textPath>
+      </text>
+      <text fontSize="8.5" fontWeight="700" fill="#fff" letterSpacing="1">
+        <textPath href="#sealBottomArc" startOffset="50%" textAnchor="middle">EMPOWERING AFRICAN TRADERS</textPath>
+      </text>
+    </svg>
+  );
+}
+
+function IconShieldCheck({ size = 20, color = GREEN }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3z" />
+      <path d="M8.5 12l2.3 2.3L15.5 9.5" />
+    </svg>
+  );
+}
+
+function IconGavel({ size = 20, color = GREEN }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="12.5" y="1.5" width="4.5" height="9" rx="1" transform="rotate(45 14.75 6)" />
+      <line x1="11.5" y1="8" x2="4" y2="15.5" />
+      <line x1="2" y1="21" x2="10" y2="21" />
+      <line x1="6" y1="21" x2="6" y2="17.5" />
+    </svg>
+  );
+}
+
+function IconGradCap({ size = 20, color = GREEN }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 4L2 9l10 5 10-5-10-5z" />
+      <path d="M6 11.5v4.5c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5" />
+      <path d="M22 9v6" />
+    </svg>
+  );
+}
+
+function IconRefresh({ size = 20, color = GREEN }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 11A8 8 0 106.3 17.7" />
+      <polyline points="20 5 20 11 14 11" />
+    </svg>
+  );
+}
+
+function IconPerson({ size = 60, color = '#b7b7b7' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <circle cx="12" cy="8" r="4.2" />
+      <path d="M4 21c0-4.5 3.6-7.5 8-7.5s8 3 8 7.5" />
+    </svg>
+  );
+}
+
+function FlourishIcon({ size = 14, color = GOLD }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <path d="M12 0l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" />
+    </svg>
+  );
+}
+
+function SocialIcon({ type }: { type: 'facebook' | 'instagram' | 'youtube' | 'telegram' }) {
+  const glyphs: Record<string, JSX.Element> = {
+    facebook: <path d="M13.5 9H15V6.5h-1.8c-1.9 0-3 1.1-3 3.1V11H8.5v2.5H10.2V19h2.5v-5.5h1.9l.3-2.5h-2.2V9.8c0-.6.2-.8.8-.8z" />,
+    instagram: (
+      <>
+        <rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke={SEAL_DARK} strokeWidth="1.6" />
+        <circle cx="12" cy="12" r="3.4" fill="none" stroke={SEAL_DARK} strokeWidth="1.6" />
+        <circle cx="16.3" cy="7.7" r="1" />
+      </>
+    ),
+    youtube: (
+      <>
+        <rect x="3" y="6" width="18" height="12" rx="3" fill="none" stroke={SEAL_DARK} strokeWidth="1.6" />
+        <polygon points="10,9 16,12 10,15" />
+      </>
+    ),
+    telegram: <path d="M4 12l16-7-3 15-5-4-3 3-1-5z" fill="none" stroke={SEAL_DARK} strokeWidth="1.4" strokeLinejoin="round" />,
+  };
+  return (
+    <div style={{ width: 22, height: 22, borderRadius: '50%', background: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <svg width={14} height={14} viewBox="0 0 24 24" fill={SEAL_DARK}>{glyphs[type]}</svg>
+    </div>
+  );
+}
 
 export default function StudentIdCard() {
   const { user } = useAuth();
@@ -40,20 +146,29 @@ export default function StudentIdCard() {
     ctx.strokeStyle = GOLD; ctx.lineWidth = 2; ctx.stroke();
     ctx.restore();
 
-    // Logo wordmark
+    // Logo wordmark (green candle bar in place of the "i")
     ctx.fillStyle = '#111'; ctx.font = 'bold 40px Georgia, serif';
-    ctx.fillText('AfriFX', 42, 74);
-    ctx.fillStyle = GREEN; ctx.fillRect(150, 40, 4, 26); // simplified "candle" accent
+    ctx.fillText('Afr', 42, 74);
+    const afrWidth = ctx.measureText('Afr').width;
+    ctx.fillStyle = GREEN; ctx.fillRect(42 + afrWidth + 4, 38, 7, 32);
+    ctx.fillStyle = '#111';
+    ctx.fillText('FX', 42 + afrWidth + 18, 74);
     ctx.fillStyle = GOLD; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'left';
     ctx.fillText('A C A D E M Y', 42, 96);
 
-    // Simplified seal badge
-    ctx.beginPath(); ctx.arc(340, 78, 38, 0, Math.PI * 2);
-    ctx.fillStyle = GREEN; ctx.fill();
+    // Seal badge (simplified — no arched text on canvas)
+    ctx.beginPath(); ctx.arc(340, 78, 40, 0, Math.PI * 2);
+    ctx.fillStyle = SEAL_DARK; ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = GOLD; ctx.stroke();
-    ctx.fillStyle = GOLD; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
-    ctx.fillText('AFRIFX', 340, 72);
-    ctx.fillText('ACADEMY', 340, 86);
+    ctx.beginPath(); ctx.arc(340, 78, 32, 0, Math.PI * 2);
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 1; ctx.globalAlpha = 0.7; ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = GOLD; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('AFRIFX ACADEMY', 340, 60);
+    ctx.fillText('EMPOWERING', 340, 100);
+    ctx.fillText('AFRICAN TRADERS', 340, 110);
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(325, 88); ctx.lineTo(332, 78); ctx.lineTo(338, 82); ctx.lineTo(352, 66); ctx.stroke();
+    ctx.lineCap = 'butt';
     ctx.textAlign = 'left';
 
     // "STUDENT ID" banner
@@ -64,9 +179,9 @@ export default function StudentIdCard() {
     ctx.strokeStyle = GOLD; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(140, 194); ctx.lineTo(285, 194); ctx.stroke();
 
-    // Certifies text
+    // Identifies text
     ctx.fillStyle = '#222'; ctx.font = '14px Arial';
-    wrapText(ctx, 'This ID card certifies that the bearer is a registered student of', 42, 225, 360, 19);
+    wrapText(ctx, 'This ID card identifies that the bearer is a registered student of', 42, 225, 360, 19);
     ctx.font = 'bold 14px Arial'; ctx.fillStyle = GREEN;
     ctx.fillText('AfriFX Academy', 42, 244);
     ctx.font = '14px Arial'; ctx.fillStyle = '#222';
@@ -74,26 +189,37 @@ export default function StudentIdCard() {
     ctx.font = 'bold 14px Arial'; ctx.fillStyle = GREEN;
     wrapText(ctx, courseName + '.', 42, 263, 360, 19);
 
-    // Footnote columns
+    // Footnote columns with simple icon marks
     const notes = [
       'This ID is non-transferable.',
       'Use of this ID is subject to AfriFX Academy rules and regulations.',
       'Carry this ID during all academy activities and sessions.',
       'If found, please return to AfriFX Academy.',
     ];
-    ctx.font = '9.5px Arial'; ctx.fillStyle = '#444';
     notes.forEach((n, i) => {
       const x = 42 + i * 92;
-      if (i > 0) { ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 8, 340); ctx.lineTo(x - 8, 430); ctx.stroke(); }
-      wrapText(ctx, n, x, 350, 82, 12);
+      if (i > 0) { ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 8, 300); ctx.lineTo(x - 8, 430); ctx.stroke(); }
+      // simple icon glyph
+      ctx.strokeStyle = GREEN; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const cx = x + 34, cy = 312;
+      ctx.beginPath();
+      if (i === 0) { ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.moveTo(cx - 4, cy); ctx.lineTo(cx - 1, cy + 3); ctx.lineTo(cx + 4, cy - 4); }
+      else if (i === 1) { ctx.moveTo(cx - 8, cy + 8); ctx.lineTo(cx + 4, cy - 4); ctx.moveTo(cx - 2, cy - 8); ctx.lineTo(cx + 8, cy + 2); }
+      else if (i === 2) { ctx.moveTo(cx - 9, cy - 2); ctx.lineTo(cx, cy - 7); ctx.lineTo(cx + 9, cy - 2); ctx.lineTo(cx, cy + 3); ctx.closePath(); }
+      else { ctx.arc(cx, cy, 8, 0.3, Math.PI * 1.8); ctx.moveTo(cx + 8, cy - 6); ctx.lineTo(cx + 8, cy); ctx.lineTo(cx + 2, cy); }
+      ctx.stroke();
+      ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+      ctx.font = '9.5px Arial'; ctx.fillStyle = '#444'; ctx.textAlign = 'center';
+      wrapText(ctx, n, x + 34, 335, 82, 12, 'center');
+      ctx.textAlign = 'left';
     });
 
-    // Photo box
+    // Photo box — person silhouette placeholder
     ctx.fillStyle = '#eee'; ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.roundRect(510, 40, 150, 175, 8); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = GREEN; ctx.font = 'bold 60px Arial'; ctx.textAlign = 'center';
-    ctx.fillText((user?.name?.[0] || 'A').toUpperCase(), 585, 145);
-    ctx.textAlign = 'left';
+    ctx.fillStyle = '#b7b7b7';
+    ctx.beginPath(); ctx.arc(585, 100, 26, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(585, 175, 48, Math.PI, Math.PI * 2); ctx.fill();
 
     // Labeled fields
     const field = (label: string, value: string, y: number) => {
@@ -108,6 +234,13 @@ export default function StudentIdCard() {
     field('STUDENT ID:', user?.studentId || '—', 110);
     field('COURSE:', courseName, 160);
 
+    // Ornate divider
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(510, 232); ctx.lineTo(660, 232); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(690, 232); ctx.lineTo(850, 232); ctx.stroke();
+    ctx.fillStyle = GOLD;
+    ctx.beginPath(); ctx.moveTo(675, 224); ctx.lineTo(680, 232); ctx.lineTo(675, 240); ctx.lineTo(670, 232); ctx.closePath(); ctx.fill();
+
     // Signature
     ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(510, 300); ctx.lineTo(660, 300); ctx.stroke();
@@ -118,9 +251,12 @@ export default function StudentIdCard() {
     ctx.font = '10px Arial'; ctx.fillStyle = '#666';
     ctx.fillText('CEO, AFRIFX ACADEMY', 510, 332);
 
-    // QR code (replaces barcode)
+    // QR code (replaces barcode) + caption
     ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.roundRect(750, 240, 100, 100, 6); ctx.stroke();
+    ctx.fillStyle = '#555'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('Scan To Verify', 800, 356);
+    ctx.textAlign = 'left';
 
     // Green footer bar
     ctx.fillStyle = GREEN; ctx.beginPath(); ctx.roundRect(14, 480, 872, 66, [0, 0, 12, 12]); ctx.fill();
@@ -132,8 +268,14 @@ export default function StudentIdCard() {
     ctx.fillText('+233 55 312 8733', 450, 524);
     ctx.textAlign = 'right';
     ctx.fillText('@afrifxacademy', 866, 512);
+    // small gold social dots
+    ['f', 'ig', 'yt', 'tg'].forEach((_, i) => {
+      const sx = 866 - 110 - i * 22;
+      ctx.beginPath(); ctx.arc(sx, 508, 8, 0, Math.PI * 2);
+      ctx.fillStyle = GOLD; ctx.fill();
+    });
     ctx.font = 'bold 11px Arial'; ctx.fillStyle = GOLD; ctx.textAlign = 'center';
-    ctx.fillText('EMPOWERING A MILLION AFRICAN TRADERS', 450, 540);
+    ctx.fillText('EMPOWERING AFRICAN TRADERS', 450, 540);
     ctx.textAlign = 'left';
 
     const finish = () => {
@@ -163,13 +305,17 @@ export default function StudentIdCard() {
           <div style={{ display: 'flex', gap: 24, position: 'relative' }}>
             {/* Left column */}
             <div style={{ flex: 1.15, minWidth: 260 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 4 }}>
-                <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.9rem', color: '#111' }}>AfriFX</span>
-                <div style={{ width: 62, height: 62, borderRadius: '50%', background: GREEN, border: `3px solid ${GOLD}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: GOLD, fontWeight: 800, fontSize: '0.55rem', letterSpacing: 1, textAlign: 'center', lineHeight: 1.3 }}>
-                  <span>AFRIFX</span><span>ACADEMY</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                    <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.9rem', color: '#111' }}>Afr</span>
+                    <span style={{ display: 'inline-block', width: 7, height: '0.78em', background: GREEN, borderRadius: 1, margin: '0 3px' }} />
+                    <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.9rem', color: '#111' }}>FX</span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', letterSpacing: 4, color: GOLD, fontWeight: 700, marginTop: 2 }}>A C A D E M Y</div>
                 </div>
+                <SealBadge size={92} />
               </div>
-              <div style={{ fontSize: '0.68rem', letterSpacing: 4, color: GOLD, fontWeight: 700, marginBottom: 14 }}>A C A D E M Y</div>
 
               <div style={{ background: GREEN, borderRadius: 6, padding: '10px 0', textAlign: 'center', maxWidth: 320 }}>
                 <span style={{ color: '#fff', fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.25rem', letterSpacing: 1 }}>STUDENT ID</span>
@@ -177,17 +323,20 @@ export default function StudentIdCard() {
               <div style={{ borderBottom: `3px solid ${GOLD}`, width: 160, margin: '6px auto 16px' }} />
 
               <p style={{ fontSize: '0.86rem', color: '#333', lineHeight: 1.6, maxWidth: 340 }}>
-                This ID card certifies that the bearer is a registered student of <b style={{ color: GREEN }}>AfriFX Academy</b> and is enrolled in the <b style={{ color: GREEN }}>{courseName}</b>.
+                This ID card identifies that the bearer is a registered student of <b style={{ color: GREEN }}>AfriFX Academy</b> and is enrolled in the <b style={{ color: GREEN }}>{courseName}</b>.
               </p>
 
-              <div style={{ display: 'flex', gap: 0, marginTop: 20, maxWidth: 360 }}>
+              <div style={{ display: 'flex', gap: 0, marginTop: 20, maxWidth: 380 }}>
                 {[
-                  'This ID is non-transferable.',
-                  'Use of this ID is subject to AfriFX Academy rules and regulations.',
-                  'Carry this ID during all academy activities and sessions.',
-                  'If found, please return to AfriFX Academy.',
+                  { icon: <IconShieldCheck />, text: 'This ID is non-transferable.' },
+                  { icon: <IconGavel />, text: 'Use of this ID is subject to AfriFX Academy rules and regulations.' },
+                  { icon: <IconGradCap />, text: 'Carry this ID during all academy activities and sessions.' },
+                  { icon: <IconRefresh />, text: 'If found, please return to AfriFX Academy.' },
                 ].map((n, i) => (
-                  <div key={i} style={{ flex: 1, padding: '0 8px', borderLeft: i > 0 ? '1px solid #ccc' : 'none', fontSize: '0.62rem', color: '#555', lineHeight: 1.4 }}>{n}</div>
+                  <div key={i} style={{ flex: 1, padding: '0 8px', borderLeft: i > 0 ? '1px solid #ccc' : 'none', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>{n.icon}</div>
+                    <div style={{ fontSize: '0.6rem', color: '#555', lineHeight: 1.4 }}>{n.text}</div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -198,8 +347,8 @@ export default function StudentIdCard() {
             {/* Right column */}
             <div style={{ flex: 1, minWidth: 260, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', gap: 16 }}>
-                <div style={{ width: 100, height: 118, borderRadius: 8, background: '#eee', border: '1.5px solid #999', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: '2.6rem', fontWeight: 800, color: GREEN }}>{(user?.name?.[0] || 'A').toUpperCase()}</span>
+                <div style={{ width: 100, height: 118, borderRadius: 8, background: '#eee', border: '1.5px solid #999', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                  <IconPerson size={64} color="#b7b7b7" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'center' }}>
                   <div>
@@ -217,29 +366,44 @@ export default function StudentIdCard() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0' }}>
+                <div style={{ flex: 1, borderTop: `1.5px solid ${GOLD}` }} />
+                <FlourishIcon />
+                <div style={{ flex: 1, borderTop: `1.5px solid ${GOLD}` }} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
-                  <div style={{ borderTop: '1px solid #333', width: 140, marginBottom: 6 }} />
-                  <div style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1rem', color: '#111' }}>Nana K. Owoahene</div>
+                  <div style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.1rem', color: '#111' }}>Nana K. Owoahene</div>
+                  <div style={{ borderTop: '1px solid #333', width: 140, margin: '4px 0 6px' }} />
                   <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#111' }}>Nana Kwaku Owoahene</div>
                   <div style={{ fontSize: '0.64rem', color: '#666' }}>CEO, AFRIFX ACADEMY</div>
                 </div>
-                <div style={{ width: 88, height: 88, border: `1.5px solid ${GOLD}`, borderRadius: 8, padding: 4, background: '#fff' }}>
-                  <img src={`/api/qr?text=${encodeURIComponent(`AFRIFX ACADEMY | Student: ${user?.name || ''} | ID: ${user?.studentId || ''}`)}&size=200`}
-                    alt="Student QR" width={78} height={78} style={{ display: 'block' }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ width: 88, height: 88, border: `1.5px solid ${GOLD}`, borderRadius: 8, padding: 4, background: '#fff' }}>
+                    <img src={`/api/qr?text=${encodeURIComponent(`AFRIFX ACADEMY | Student: ${user?.name || ''} | ID: ${user?.studentId || ''}`)}&size=200`}
+                      alt="Student QR" width={78} height={78} style={{ display: 'block' }} />
+                  </div>
+                  <div style={{ fontSize: '0.6rem', color: '#555', fontWeight: 700, marginTop: 4, letterSpacing: 0.5 }}>Scan To Verify</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Green footer bar */}
-          <div style={{ background: GREEN, borderRadius: 8, padding: '10px 20px', marginTop: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, color: '#fff', fontSize: '0.72rem', fontWeight: 600 }}>
+          <div style={{ background: GREEN, borderRadius: 8, padding: '10px 20px', marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, color: '#fff', fontSize: '0.72rem', fontWeight: 600, alignItems: 'center' }}>
               <span>🌐 www.afrifxacademy.com &nbsp; 📧 afrifxacademy@gmail.com</span>
               <span>💬 WhatsApp: +233 24 529 9949 / +233 55 312 8733</span>
-              <span>@afrifxacademy</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <SocialIcon type="facebook" />
+                <SocialIcon type="instagram" />
+                <SocialIcon type="youtube" />
+                <SocialIcon type="telegram" />
+                <span>@afrifxacademy</span>
+              </div>
             </div>
-            <div style={{ textAlign: 'center', color: GOLD, fontSize: '0.68rem', fontWeight: 700, letterSpacing: 1 }}>EMPOWERING A MILLION AFRICAN TRADERS</div>
+            <div style={{ textAlign: 'center', color: GOLD, fontSize: '0.68rem', fontWeight: 700, letterSpacing: 1 }}>EMPOWERING AFRICAN TRADERS</div>
           </div>
         </div>
 
@@ -259,19 +423,20 @@ export default function StudentIdCard() {
   );
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number, align: 'left' | 'center' = 'left') {
   const words = text.split(' ');
   let line = '';
   let curY = y;
+  const lines: string[] = [];
   for (const word of words) {
     const test = line + word + ' ';
     if (ctx.measureText(test).width > maxWidth && line !== '') {
-      ctx.fillText(line, x, curY);
+      lines.push(line);
       line = word + ' ';
-      curY += lineHeight;
     } else {
       line = test;
     }
   }
-  ctx.fillText(line, x, curY);
+  lines.push(line);
+  lines.forEach((l) => { ctx.fillText(align === 'center' ? l.trim() : l, x, curY); curY += lineHeight; });
 }
