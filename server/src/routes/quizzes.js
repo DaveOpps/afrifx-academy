@@ -56,6 +56,19 @@ router.post('/', requireAdmin, async (req, res) => {
     const quiz = await prisma.quiz.create({
       data: { moduleId: Number(moduleId), questions: JSON.stringify(questions) }
     });
+
+    // Notification bell (reuse announcements) — mirrors the "New Meeting" pattern
+    const module = await prisma.module.findUnique({ where: { id: Number(moduleId) }, include: { course: true } });
+    if (module) {
+      await prisma.announcement.create({
+        data: {
+          title: `📝 New Quiz: ${module.title}`,
+          body: `A new quiz is now available in ${module.course.title}. Finish the module's lessons to unlock it.`,
+          pinned: false,
+        },
+      });
+    }
+
     res.json(quiz);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
