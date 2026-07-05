@@ -73,7 +73,7 @@ export default function StudentIdCard() {
         ctx.fillText('STUDENT ID', 40, 280);
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 20px monospace';
-        ctx.fillText(user?.studentId || 'AFX2026-00000', 40, 305);
+        ctx.fillText(user?.studentId || 'AFX-000026', 40, 305);
         // Member since
         ctx.fillStyle = '#9a9a9a';
         ctx.font = '11px sans-serif';

@@ -1,14 +1,20 @@
 import { prisma } from './db.js';
 
-// Generate a unique AFRIFX student ID (collision-safe).
+// Generate a unique AFRIFX student ID: AFX-000126
+//   AFX    = fixed prefix
+//   0001   = sequential student number, zero-padded to 4 digits
+//   26     = 2-digit year of joining
 export async function generateStudentId() {
-  const year = new Date().getFullYear();
+  const yy = String(new Date().getFullYear() % 100).padStart(2, '0');
+  const existingCount = await prisma.user.count({ where: { studentId: { not: null } } });
+  let seq = existingCount + 1;
   for (let i = 0; i < 25; i++) {
-    const id = `AFX${year}-${Math.floor(10000 + Math.random() * 90000)}`;
+    const id = `AFX-${String(seq).padStart(4, '0')}${yy}`;
     const exists = await prisma.user.findUnique({ where: { studentId: id } });
     if (!exists) return id;
+    seq++;
   }
-  return `AFX${year}-${Date.now().toString().slice(-6)}`;
+  return `AFX-${Date.now().toString().slice(-6)}`;
 }
 
 // Ensure a user has a studentId; generates and persists one if missing. Returns the id.
