@@ -3,7 +3,7 @@ import { api } from '../../api';
 import DashboardLayout from '../../components/DashboardLayout';
 
 const TYPES = ['Forex', 'Gold', 'Crypto', 'Indices'];
-const EMPTY = { pair: '', type: 'Forex', direction: 'BUY', entry: '', stopLoss: '', tp1: '', tp2: '', tp3: '', notes: '' };
+const EMPTY = { pair: '', type: 'Forex', direction: 'BUY', entry: '', stopLoss: '', tp1: '', tp2: '', tp3: '', notes: '', status: 'active' };
 
 export default function AdminSignals() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -41,6 +41,10 @@ export default function AdminSignals() {
     try { await api.updateSignal(id, { status: 'cancelled' }); load(); } catch {}
   }
 
+  async function handleActivate(id: number) {
+    try { await api.updateSignal(id, { status: 'active' }); load(); } catch {}
+  }
+
   async function handleDelete(id: number) {
     if (!confirm('Delete this signal?')) return;
     try { await api.deleteSignal(id); load(); } catch {}
@@ -74,6 +78,13 @@ export default function AdminSignals() {
                   <select value={form.direction} onChange={e => setForm({ ...form, direction: e.target.value })} style={{ width: '100%', background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px' }}>
                     <option>BUY</option>
                     <option>SELL</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={{ width: '100%', background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px' }}>
+                    <option value="active">Active — post live now</option>
+                    <option value="pending">Pending — waiting to trigger</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -142,7 +153,14 @@ export default function AdminSignals() {
                     <button className="btn btn-sm btn-outline" onClick={() => handleCancel(s.id)}>Cancel</button>
                   </>
                 )}
-                {s.status !== 'active' && (
+                {s.status === 'pending' && (
+                  <>
+                    <span style={{ fontSize: '0.8rem', color: '#c9a84c', fontWeight: 600 }}>⏳ Pending</span>
+                    <button className="btn btn-sm btn-primary" onClick={() => handleActivate(s.id)}>Activate</button>
+                    <button className="btn btn-sm btn-outline" onClick={() => handleCancel(s.id)}>Cancel</button>
+                  </>
+                )}
+                {s.status !== 'active' && s.status !== 'pending' && (
                   <span style={{ fontSize: '0.8rem', color: s.status === 'closed' ? (s.result === 'win' ? '#4caf50' : '#ef5350') : '#9a9a9a', fontWeight: 600, textTransform: 'capitalize' }}>
                     {s.status}{s.result ? ` · ${s.result}` : ''}{s.pips != null ? ` · ${s.pips}p` : ''}
                   </span>

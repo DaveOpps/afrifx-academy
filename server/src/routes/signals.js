@@ -98,22 +98,24 @@ router.get('/latest', requireAuth, async (req, res) => {
 
 // POST /api/signals — admin create
 router.post('/', requireAdmin, async (req, res) => {
-  const { pair, type, direction, entry, stopLoss, tp1, tp2, tp3, notes } = req.body;
+  const { pair, type, direction, entry, stopLoss, tp1, tp2, tp3, notes, status } = req.body;
   if (!pair || !direction || !entry || !stopLoss || !tp1) {
     return res.status(400).json({ error: 'pair, direction, entry, stopLoss and tp1 are required' });
   }
   try {
     const signal = await prisma.signal.create({
-      data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: direction.toUpperCase(), entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null }
+      data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: direction.toUpperCase(), entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: status === 'pending' ? 'pending' : 'active' }
     });
     res.json(signal);
-    // Email all active signal subscribers (fire-and-forget)
-    prisma.user.findMany({
-      where: { OR: [{ tier: 'vvip' }, { signalSubUntil: { gt: new Date() } }] },
-      select: { email: true, name: true }
-    }).then(users => {
-      users.forEach(u => sendSignalAlert(u.email, u.name, signal).catch(() => {}));
-    }).catch(() => {});
+    // Email all active signal subscribers (fire-and-forget) — skip for pending signals not yet triggered
+    if (signal.status === 'active') {
+      prisma.user.findMany({
+        where: { OR: [{ tier: 'vvip' }, { signalSubUntil: { gt: new Date() } }] },
+        select: { email: true, name: true }
+      }).then(users => {
+        users.forEach(u => sendSignalAlert(u.email, u.name, signal).catch(() => {}));
+      }).catch(() => {});
+    }
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
