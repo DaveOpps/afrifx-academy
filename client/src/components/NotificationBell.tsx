@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 
 export default function NotificationBell() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [anns, setAnns] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
@@ -56,16 +58,28 @@ export default function NotificationBell() {
           {anns.length === 0 ? (
             <div style={{ padding: 32, textAlign: 'center', color: '#9a9a9a', fontSize: '0.86rem' }}>No announcements yet</div>
           ) : (
-            anns.map(a => (
-              <div key={a.id} style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: a.read ? 'transparent' : 'rgba(201,168,76,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  {a.pinned && <span style={{ fontSize: '0.7rem' }}>📌</span>}
-                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#fff' }}>{a.title}</span>
+            anns.map(a => {
+              const isMeeting = /meeting/i.test(a.title);
+              return (
+                <div key={a.id}
+                  onClick={isMeeting ? () => { setOpen(false); navigate('/meetings'); } : undefined}
+                  style={{
+                    padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    background: a.read ? 'transparent' : 'rgba(201,168,76,0.05)',
+                    cursor: isMeeting ? 'pointer' : 'default', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={isMeeting ? (e) => { e.currentTarget.style.background = 'rgba(201,168,76,0.12)'; } : undefined}
+                  onMouseLeave={isMeeting ? (e) => { e.currentTarget.style.background = a.read ? 'transparent' : 'rgba(201,168,76,0.05)'; } : undefined}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    {a.pinned && <span style={{ fontSize: '0.7rem' }}>📌</span>}
+                    <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#fff', flex: 1 }}>{a.title}</span>
+                    {isMeeting && <span style={{ fontSize: '0.72rem', color: '#c9a84c' }}>→</span>}
+                  </div>
+                  <p style={{ fontSize: '0.82rem', color: '#b0b0b0', lineHeight: 1.6, marginBottom: 6 }}>{a.body}</p>
+                  <span style={{ fontSize: '0.72rem', color: '#777' }}>{new Date(a.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
-                <p style={{ fontSize: '0.82rem', color: '#b0b0b0', lineHeight: 1.6, marginBottom: 6 }}>{a.body}</p>
-                <span style={{ fontSize: '0.72rem', color: '#777' }}>{new Date(a.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}
