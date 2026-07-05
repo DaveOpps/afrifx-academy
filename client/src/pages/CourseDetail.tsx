@@ -95,7 +95,12 @@ export default function CourseDetail() {
                         </div>
                       ))}
                       {mod.quizzes?.length > 0 && (
-                        <div style={{ padding: '10px 18px 10px 30px', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '0.88rem', color: '#c9a84c' }}>📝 Module Quiz</div>
+                        <div style={{ padding: '10px 18px 10px 30px', display: 'flex', alignItems: 'center', gap: 12, borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '0.88rem', color: '#c9a84c' }}>
+                          <span style={{ flex: 1 }}>📝 Module Quiz</span>
+                          {enrolled && mod.lessons.length > 0 && (
+                            <Link to={`/learn/${course.id}/${mod.lessons[mod.lessons.length - 1].id}`} style={{ color: '#c9a84c', fontSize: '0.78rem' }}>Take Quiz →</Link>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
