@@ -143,6 +143,25 @@ body { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'cv0
 .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.3); }
 .form-group select option { background: var(--select-bg); }
 
+/* Date/time pickers: force the native dropdown itself to render in dark mode
+   (otherwise Chromium/Firefox pop up a jarring white calendar), and make the
+   calendar/clock icon visible against the dark input (it's near-invisible by default). */
+.form-group input[type="date"],
+.form-group input[type="time"] {
+  color-scheme: dark;
+}
+.form-group input[type="date"]::-webkit-calendar-picker-indicator,
+.form-group input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6);
+  opacity: 0.8;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.form-group input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.form-group input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* ---------- Grids ---------- */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
