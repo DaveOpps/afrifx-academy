@@ -31,6 +31,57 @@ function SealBadge({ size = 100 }: { size?: number }) {
   );
 }
 
+// Full-card decorative backdrop: faint candlestick watermark on the right,
+// the sweeping green sash with a gold inner edge, and a top-right corner accent.
+// Rendered behind the content (zIndex 0). viewBox matches the 900x520 card ratio.
+function CardBackdrop() {
+  const candles: [number, number, number][] = [
+    [610, 150, 34], [648, 120, 52], [686, 165, 30], [724, 92, 58],
+    [762, 130, 44], [800, 74, 66], [838, 108, 48], [872, 60, 60],
+  ];
+  return (
+    <svg viewBox="0 0 900 520" preserveAspectRatio="none" width="100%" height="100%"
+      style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+      {/* faint rising-candlestick watermark behind the right-hand fields */}
+      <g opacity="0.07" fill={GREEN}>
+        {candles.map(([x, y, h], i) => (
+          <g key={i}>
+            <rect x={x - 1} y={y - 16} width="2" height={h + 32} />
+            <rect x={x - 8} y={y} width="16" height={h} rx="2" />
+          </g>
+        ))}
+      </g>
+      {/* green sash — gentle S-curve, kept in the gutter between the columns */}
+      <path d="M482 -14 C506 150 460 300 490 458 C504 512 480 520 474 530"
+        fill="none" stroke={GREEN} strokeWidth="13" strokeLinecap="round" />
+      {/* bright gold edge riding the inner side of the sash */}
+      <path d="M474 -14 C498 150 452 300 482 458 C496 512 472 520 466 530"
+        fill="none" stroke={GOLD} strokeWidth="2.5" strokeLinecap="round" />
+      {/* top-right corner accent */}
+      <path d="M900 -14 H834 C870 34 884 66 900 118 Z" fill={GREEN} />
+      <path d="M834 -14 C870 34 884 66 900 118" fill="none" stroke={GOLD} strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+// Big logo lockup: "Afr" + a green candlestick (with wicks) as the "i" + "FX".
+function Wordmark() {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '2.7rem', color: '#111', lineHeight: 1 }}>Afr</span>
+        <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', margin: '0 4px' }}>
+          <span style={{ width: 2.5, height: 9, background: GREEN }} />
+          <span style={{ width: 10, height: 30, background: GREEN, borderRadius: 2 }} />
+          <span style={{ width: 2.5, height: 9, background: GREEN }} />
+        </span>
+        <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '2.7rem', color: '#111', lineHeight: 1 }}>FX</span>
+      </div>
+      <div style={{ fontSize: '0.72rem', letterSpacing: 6, color: GOLD, fontWeight: 700, marginTop: 4 }}>A C A D E M Y</div>
+    </div>
+  );
+}
+
 function IconShieldCheck({ size = 20, color = GREEN }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -137,24 +188,50 @@ export default function StudentIdCard() {
     ctx.strokeStyle = GOLD; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.roundRect(14, 14, 872, 532, 12); ctx.stroke();
 
-    // Diagonal green sash separating left/right halves
+    // Faint rising-candlestick watermark behind the right-hand fields
     ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(470, 20); ctx.lineTo(510, 20); ctx.lineTo(450, 480); ctx.lineTo(410, 480);
-    ctx.closePath();
-    ctx.fillStyle = GREEN; ctx.fill();
-    ctx.strokeStyle = GOLD; ctx.lineWidth = 2; ctx.stroke();
+    ctx.globalAlpha = 0.07; ctx.fillStyle = GREEN;
+    [[600, 150, 40], [640, 118, 60], [680, 168, 34], [720, 88, 66],
+     [760, 130, 50], [800, 70, 76], [840, 108, 54]].forEach(([x, y, h]) => {
+      ctx.fillRect(x - 1, y - 18, 2, h + 36);
+      ctx.fillRect(x - 9, y, 18, h);
+    });
     ctx.restore();
 
-    // Logo wordmark (green candle bar in place of the "i")
-    ctx.fillStyle = '#111'; ctx.font = 'bold 40px Georgia, serif';
-    ctx.fillText('Afr', 42, 74);
+    // Sweeping green sash with a bright gold inner edge (curved, in the gutter)
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(490, 16);
+    ctx.bezierCurveTo(516, 180, 466, 330, 500, 500);
+    ctx.strokeStyle = GREEN; ctx.lineWidth = 16; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(481, 16);
+    ctx.bezierCurveTo(507, 180, 457, 330, 491, 500);
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 3; ctx.stroke();
+    ctx.restore();
+
+    // Top-right corner accent
+    ctx.beginPath();
+    ctx.moveTo(886, 16); ctx.lineTo(824, 16);
+    ctx.bezierCurveTo(862, 70, 876, 104, 886, 150);
+    ctx.closePath();
+    ctx.fillStyle = GREEN; ctx.fill();
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 2.5; ctx.stroke();
+
+    // Logo wordmark — large, with a green candlestick (wicks) as the "i"
+    ctx.fillStyle = '#111'; ctx.font = 'bold 56px Georgia, serif';
+    ctx.fillText('Afr', 42, 82);
     const afrWidth = ctx.measureText('Afr').width;
-    ctx.fillStyle = GREEN; ctx.fillRect(42 + afrWidth + 4, 38, 7, 32);
+    const candleX = 42 + afrWidth + 6;
+    ctx.fillStyle = GREEN;
+    ctx.fillRect(candleX + 3, 34, 3, 12);          // top wick
+    ctx.fillRect(candleX, 44, 10, 34);             // body
+    ctx.fillRect(candleX + 3, 76, 3, 12);          // bottom wick
     ctx.fillStyle = '#111';
-    ctx.fillText('FX', 42 + afrWidth + 18, 74);
-    ctx.fillStyle = GOLD; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'left';
-    ctx.fillText('A C A D E M Y', 42, 96);
+    ctx.fillText('FX', candleX + 18, 82);
+    ctx.fillStyle = GOLD; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'left';
+    ctx.fillText('A  C  A  D  E  M  Y', 44, 104);
 
     // Seal badge (simplified — no arched text on canvas)
     ctx.beginPath(); ctx.arc(340, 78, 40, 0, Math.PI * 2);
@@ -171,13 +248,18 @@ export default function StudentIdCard() {
     ctx.lineCap = 'butt';
     ctx.textAlign = 'left';
 
-    // "STUDENT ID" banner
-    ctx.fillStyle = GREEN; ctx.beginPath(); ctx.roundRect(42, 140, 340, 44, 6); ctx.fill();
+    // "STUDENT ID" banner with flanking gold dashes
+    ctx.fillStyle = GREEN; ctx.beginPath(); ctx.roundRect(42, 142, 340, 46, 8); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Georgia, serif'; ctx.textAlign = 'center';
-    ctx.fillText('STUDENT ID', 212, 170);
+    ctx.fillText('STUDENT ID', 212, 173);
+    const idW = ctx.measureText('STUDENT ID').width;
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(212 - idW / 2 - 30, 165); ctx.lineTo(212 - idW / 2 - 12, 165); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(212 + idW / 2 + 12, 165); ctx.lineTo(212 + idW / 2 + 30, 165); ctx.stroke();
+    ctx.lineCap = 'butt';
     ctx.textAlign = 'left';
     ctx.strokeStyle = GOLD; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(140, 194); ctx.lineTo(285, 194); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(140, 198); ctx.lineTo(285, 198); ctx.stroke();
 
     // Identifies text
     ctx.fillStyle = '#222'; ctx.font = '14px Arial';
@@ -215,11 +297,11 @@ export default function StudentIdCard() {
     });
 
     // Photo box — person silhouette placeholder
-    ctx.fillStyle = '#eee'; ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.roundRect(510, 40, 150, 175, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e9e9e9'; ctx.strokeStyle = '#b0b0b0'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(512, 40, 156, 188, 10); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#b7b7b7';
-    ctx.beginPath(); ctx.arc(585, 100, 26, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(585, 175, 48, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(590, 106, 29, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(590, 192, 52, Math.PI, Math.PI * 2); ctx.fill();
 
     // Labeled fields
     const field = (label: string, value: string, y: number) => {
@@ -300,27 +382,23 @@ export default function StudentIdCard() {
           padding: '22px 28px', position: 'relative', overflow: 'hidden', marginBottom: 28,
           boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
         }}>
-          <div style={{ position: 'absolute', inset: 3, border: `2px solid ${GOLD}`, borderRadius: 14, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 3, border: `2px solid ${GOLD}`, borderRadius: 14, pointerEvents: 'none', zIndex: 2 }} />
+          <CardBackdrop />
 
-          <div style={{ display: 'flex', gap: 24, position: 'relative' }}>
+          <div style={{ display: 'flex', gap: 40, position: 'relative', zIndex: 1 }}>
             {/* Left column */}
             <div style={{ flex: 1.15, minWidth: 260 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                    <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.9rem', color: '#111' }}>Afr</span>
-                    <span style={{ display: 'inline-block', width: 7, height: '0.78em', background: GREEN, borderRadius: 1, margin: '0 3px' }} />
-                    <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.9rem', color: '#111' }}>FX</span>
-                  </div>
-                  <div style={{ fontSize: '0.68rem', letterSpacing: 4, color: GOLD, fontWeight: 700, marginTop: 2 }}>A C A D E M Y</div>
-                </div>
-                <SealBadge size={92} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                <Wordmark />
+                <SealBadge size={100} />
               </div>
 
-              <div style={{ background: GREEN, borderRadius: 6, padding: '10px 0', textAlign: 'center', maxWidth: 320 }}>
-                <span style={{ color: '#fff', fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.25rem', letterSpacing: 1 }}>STUDENT ID</span>
+              <div style={{ background: GREEN, borderRadius: 8, padding: '11px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, maxWidth: 330 }}>
+                <span style={{ width: 26, height: 2, background: GOLD, borderRadius: 2 }} />
+                <span style={{ color: '#fff', fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: '1.3rem', letterSpacing: 2 }}>STUDENT ID</span>
+                <span style={{ width: 26, height: 2, background: GOLD, borderRadius: 2 }} />
               </div>
-              <div style={{ borderBottom: `3px solid ${GOLD}`, width: 160, margin: '6px auto 16px' }} />
+              <div style={{ borderBottom: `3px solid ${GOLD}`, width: 160, margin: '7px auto 18px' }} />
 
               <p style={{ fontSize: '0.86rem', color: '#333', lineHeight: 1.6, maxWidth: 340 }}>
                 This ID card identifies that the bearer is a registered student of <b style={{ color: GREEN }}>AfriFX Academy</b> and is enrolled in the <b style={{ color: GREEN }}>{courseName}</b>.
@@ -341,14 +419,11 @@ export default function StudentIdCard() {
               </div>
             </div>
 
-            {/* Diagonal sash divider */}
-            <div style={{ width: 3, background: GREEN, alignSelf: 'stretch', transform: 'skewX(-8deg)', boxShadow: `0 0 0 1px ${GOLD}` }} />
-
-            {/* Right column */}
-            <div style={{ flex: 1, minWidth: 260, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <div style={{ width: 100, height: 118, borderRadius: 8, background: '#eee', border: '1.5px solid #999', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                  <IconPerson size={64} color="#b7b7b7" />
+            {/* Right column (sash + watermark come from CardBackdrop) */}
+            <div style={{ flex: 1, minWidth: 260, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', gap: 18 }}>
+                <div style={{ width: 118, height: 148, borderRadius: 10, background: '#e9e9e9', border: '1.5px solid #b0b0b0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                  <IconPerson size={78} color="#b7b7b7" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'center' }}>
                   <div>
@@ -391,7 +466,7 @@ export default function StudentIdCard() {
           </div>
 
           {/* Green footer bar */}
-          <div style={{ background: GREEN, borderRadius: 8, padding: '10px 20px', marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ background: GREEN, borderRadius: 8, padding: '10px 20px', marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, color: '#fff', fontSize: '0.72rem', fontWeight: 600, alignItems: 'center' }}>
               <span>🌐 www.afrifxacademy.com &nbsp; 📧 afrifxacademy@gmail.com</span>
               <span>💬 WhatsApp: +233 24 529 9949 / +233 55 312 8733</span>
