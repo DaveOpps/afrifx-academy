@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import DashboardLayout from '../components/DashboardLayout';
@@ -57,22 +58,25 @@ export default function Signals() {
   return (
     <DashboardLayout title="Trading Signals" subtitle="Daily Forex, Gold, Crypto and Indices signals from our expert analysts.">
       {!type ? (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div className="card" style={{ width: '100%', maxWidth: 480, padding: 32, textAlign: 'center' }}>
-            <p style={{ fontSize: '2rem', marginBottom: 8 }}>📡</p>
-            <h2 style={{ fontWeight: 800, marginBottom: 8 }}>Choose a Market</h2>
-            <p style={{ color: '#9a9a9a', fontSize: '0.88rem', marginBottom: 24 }}>Select which signals you'd like to view.</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
-              {CATEGORIES.map(c => (
-                <button key={c.value} onClick={() => chooseCategory(c.value)} className="btn btn-outline"
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '20px 12px', fontWeight: 700, fontSize: '0.85rem' }}>
-                  <span style={{ fontSize: '1.8rem' }}>{c.icon}</span>
-                  {c.label}
-                </button>
-              ))}
+        createPortal(
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, padding: 20, overflowY: 'auto' }}>
+            <div className="card" style={{ width: '100%', maxWidth: 480, padding: 32, textAlign: 'center', margin: 'auto' }}>
+              <p style={{ fontSize: '2rem', marginBottom: 8 }}>📡</p>
+              <h2 style={{ fontWeight: 800, marginBottom: 8 }}>Choose a Market</h2>
+              <p style={{ color: '#9a9a9a', fontSize: '0.88rem', marginBottom: 24 }}>Select which signals you'd like to view.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
+                {CATEGORIES.map(c => (
+                  <button key={c.value} onClick={() => chooseCategory(c.value)} className="btn btn-outline"
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '20px 12px', fontWeight: 700, fontSize: '0.85rem' }}>
+                    <span style={{ fontSize: '1.8rem' }}>{c.icon}</span>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
+          </div>,
+          document.body
+        )
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
