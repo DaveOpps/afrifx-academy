@@ -5,6 +5,19 @@ import { sendSignalAlert } from '../utils/email.js';
 
 const router = Router();
 
+// Post a notification-bell announcement for a signal event. Announcements are
+// global (every student sees them; read-state is tracked per user), so this is
+// how a signal reaches everyone's bell. Fire-and-forget — never blocks the API.
+function announceSignal(title, body) {
+  prisma.announcement.create({ data: { title, body, pinned: false } }).catch(() => {});
+}
+
+function signalSummary(s) {
+  const tps = [s.tp1, s.tp2, s.tp3].filter(Boolean).join(' / ');
+  const ot = s.orderType && s.orderType !== 'Market' ? ` ${s.orderType}` : '';
+  return `${s.pair} ${s.direction}${ot} — Entry ${s.entry}, SL ${s.stopLoss}${tps ? `, TP ${tps}` : ''}`;
+}
+
 // GET /api/signals/performance — PUBLIC transparency stats (trust builder)
 router.get('/performance', async (req, res) => {
   try {
@@ -112,6 +125,9 @@ router.post('/', requireAdmin, async (req, res) => {
       data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: dir, orderType: ot, entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: status === 'pending' ? 'pending' : 'active' }
     });
     res.json(signal);
+    // Bell announcement for everyone
+    const postedLabel = signal.status === 'pending' ? '⏳ New Pending Signal' : '📊 New Signal';
+    announceSignal(`${postedLabel}: ${signal.pair} ${signal.direction}`, signalSummary(signal));
     // Email all active signal subscribers (fire-and-forget) — skip for pending signals not yet triggered
     if (signal.status === 'active') {
       prisma.user.findMany({
@@ -128,6 +144,7 @@ router.post('/', requireAdmin, async (req, res) => {
 router.put('/:id', requireAdmin, async (req, res) => {
   const { status, result, pips, notes } = req.body;
   try {
+    const prev = await prisma.signal.findUnique({ where: { id: Number(req.params.id) } });
     const signal = await prisma.signal.update({
       where: { id: Number(req.params.id) },
       data: {
@@ -138,6 +155,16 @@ router.put('/:id', requireAdmin, async (req, res) => {
       }
     });
     res.json(signal);
+    // Notify the bell on meaningful status changes (trigger / close / cancel)
+    if (prev && status && status !== prev.status) {
+      if (status === 'active' && prev.status === 'pending') {
+        announceSignal(`🎯 Signal Triggered: ${signal.pair} ${signal.direction}`, `${signalSummary(signal)} — now active.`);
+      } else if (status === 'closed') {
+        announceSignal(`✅ Signal Closed: ${signal.pair} ${signal.direction}`, `Result: ${(signal.result || 'closed').toUpperCase()}${signal.pips != null ? ` · ${signal.pips > 0 ? '+' : ''}${signal.pips} pips` : ''}.`);
+      } else if (status === 'cancelled') {
+        announceSignal(`🚫 Signal Cancelled: ${signal.pair} ${signal.direction}`, `The ${signal.pair} ${signal.direction} signal was cancelled.`);
+      }
+    }
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
