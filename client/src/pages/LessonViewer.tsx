@@ -69,6 +69,60 @@ export default function LessonViewer() {
   const currentIdx = allLessons.findIndex((l: any) => l.id === Number(lessonId));
   const prevLesson = allLessons[currentIdx - 1];
   const nextLesson = allLessons[currentIdx + 1];
+  const hasQuiz = mod.quizzes?.length > 0;
+
+  const quizCard = hasQuiz ? (
+    <div ref={quizRef} className="card" style={{ marginTop: 16, scrollMarginTop: 80 }}>
+      <h3 style={{ marginBottom: 12, fontWeight: 700 }}>📝 Module Quiz</h3>
+      {!quiz ? (
+        <button className="btn btn-gold" onClick={() => loadQuiz(mod.quizzes[0].id)}>Take Quiz</button>
+      ) : result ? (
+        <div>
+          <div className={`alert ${result.score >= 60 ? 'alert-success' : 'alert-error'}`}>
+            You scored <strong>{result.score}%</strong> ({result.correct}/{result.total} correct)
+            {result.score >= 60 ? ' — Great job! 🎉' : ' — Keep practicing!'}
+          </div>
+          <Link to={`/courses/${courseId}`} className="btn btn-outline btn-sm">Back to Course</Link>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {quiz.questions.map((q: any, qi: number) => (
+            <div key={qi}>
+              <p style={{ fontWeight: 600, marginBottom: 10 }}>{qi+1}. {q.question}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {q.options.map((opt: string, oi: number) => (
+                  <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, background: answers[qi] === oi ? 'rgba(201,168,76,0.12)' : 'rgba(255,255,255,0.03)', border: `1px solid ${answers[qi] === oi ? 'rgba(201,168,76,0.4)' : 'rgba(255,255,255,0.08)'}`, fontSize: '0.9rem' }}>
+                    <input type="radio" name={`q${qi}`} checked={answers[qi] === oi} onChange={() => setAnswers({...answers, [qi]: oi})} style={{ accentColor: '#c9a84c' }} />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button className="btn btn-gold" onClick={submitQuiz} disabled={Object.keys(answers).length < quiz.questions.length}>Submit Quiz</button>
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  // Focused quiz view — reached via the course page's "Take Quiz" link (?quiz=1).
+  // No video or lesson chrome, just the questions.
+  if (wantQuiz) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0d0d0d' }}>
+        <Navbar />
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: 24 }}>
+          <Link to={`/courses/${courseId}`} style={{ color: '#c9a84c', fontSize: '0.82rem' }}>← Back to Course</Link>
+          <p style={{ fontSize: '0.82rem', color: '#9a9a9a', margin: '14px 0 0' }}>{mod.title}</p>
+          {hasQuiz ? quizCard : (
+            <div className="card" style={{ marginTop: 16 }}>
+              <p style={{ color: '#9a9a9a' }}>No quiz has been added to this module yet.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#0d0d0d' }}>
@@ -162,40 +216,8 @@ export default function LessonViewer() {
             </div>
           )}
 
-          {/* Quiz */}
-          {mod.quizzes?.length > 0 && (!nextLesson || wantQuiz) && (
-            <div ref={quizRef} className="card" style={{ marginTop: 16, scrollMarginTop: 80 }}>
-              <h3 style={{ marginBottom: 12, fontWeight: 700 }}>📝 Module Quiz</h3>
-              {!quiz ? (
-                <button className="btn btn-gold" onClick={() => loadQuiz(mod.quizzes[0].id)}>Take Quiz</button>
-              ) : result ? (
-                <div>
-                  <div className={`alert ${result.score >= 60 ? 'alert-success' : 'alert-error'}`}>
-                    You scored <strong>{result.score}%</strong> ({result.correct}/{result.total} correct)
-                    {result.score >= 60 ? ' — Great job! 🎉' : ' — Keep practicing!'}
-                  </div>
-                  <Link to={`/courses/${courseId}`} className="btn btn-outline btn-sm">Back to Course</Link>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  {quiz.questions.map((q: any, qi: number) => (
-                    <div key={qi}>
-                      <p style={{ fontWeight: 600, marginBottom: 10 }}>{qi+1}. {q.question}</p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {q.options.map((opt: string, oi: number) => (
-                          <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 8, background: answers[qi] === oi ? 'rgba(201,168,76,0.12)' : 'rgba(255,255,255,0.03)', border: `1px solid ${answers[qi] === oi ? 'rgba(201,168,76,0.4)' : 'rgba(255,255,255,0.08)'}`, fontSize: '0.9rem' }}>
-                            <input type="radio" name={`q${qi}`} checked={answers[qi] === oi} onChange={() => setAnswers({...answers, [qi]: oi})} style={{ accentColor: '#c9a84c' }} />
-                            {opt}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  <button className="btn btn-gold" onClick={submitQuiz} disabled={Object.keys(answers).length < quiz.questions.length}>Submit Quiz</button>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Quiz (shown on the module's last lesson) */}
+          {!nextLesson && quizCard}
         </div>
 
         {/* Sidebar */}
