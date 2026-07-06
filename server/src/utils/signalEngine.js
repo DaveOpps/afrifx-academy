@@ -51,7 +51,7 @@ async function tick() {
   if (running) return; // never overlap a slow tick
   running = true;
   try {
-    const signals = await prisma.signal.findMany({ where: { status: { in: ['pending', 'active'] } } });
+    const signals = await prisma.signal.findMany({ where: { status: { in: ['pending', 'active'] }, autoManage: true } });
     if (signals.length === 0) return;
 
     // Price each needed instrument once (getPrice also caches ~5s internally).

@@ -101,7 +101,7 @@ router.get('/latest', requireAuth, async (req, res) => {
 const ORDER_TYPES = ['Market', 'Buy Limit', 'Sell Limit', 'Buy Stop', 'Sell Stop'];
 
 router.post('/', requireAdmin, async (req, res) => {
-  const { pair, type, direction, entry, stopLoss, tp1, tp2, tp3, notes, status, orderType } = req.body;
+  const { pair, type, direction, entry, stopLoss, tp1, tp2, tp3, notes, status, orderType, autoManage } = req.body;
   if (!pair || !direction || !entry || !stopLoss || !tp1) {
     return res.status(400).json({ error: 'pair, direction, entry, stopLoss and tp1 are required' });
   }
@@ -110,7 +110,7 @@ router.post('/', requireAdmin, async (req, res) => {
     const ot = ORDER_TYPES.includes(orderType) ? orderType : 'Market';
     const dir = ot.startsWith('Buy') ? 'BUY' : ot.startsWith('Sell') ? 'SELL' : direction.toUpperCase();
     const signal = await prisma.signal.create({
-      data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: dir, orderType: ot, entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: status === 'pending' ? 'pending' : 'active' }
+      data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: dir, orderType: ot, entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: status === 'pending' ? 'pending' : 'active', autoManage: autoManage !== false }
     });
     res.json(signal);
     // Bell announcement for everyone
@@ -130,7 +130,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
 // PUT /api/signals/:id — admin update (close with result)
 router.put('/:id', requireAdmin, async (req, res) => {
-  const { status, result, pips, notes } = req.body;
+  const { status, result, pips, notes, autoManage } = req.body;
   try {
     const prev = await prisma.signal.findUnique({ where: { id: Number(req.params.id) } });
     const signal = await prisma.signal.update({
@@ -139,7 +139,8 @@ router.put('/:id', requireAdmin, async (req, res) => {
         ...(status ? { status } : {}),
         ...(result ? { result } : {}),
         ...(pips !== undefined ? { pips: pips !== '' ? Number(pips) : null } : {}),
-        ...(notes !== undefined ? { notes } : {})
+        ...(notes !== undefined ? { notes } : {}),
+        ...(autoManage !== undefined ? { autoManage: !!autoManage } : {})
       }
     });
     res.json(signal);

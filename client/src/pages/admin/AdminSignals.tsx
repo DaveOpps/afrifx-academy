@@ -15,7 +15,7 @@ const ORDER_TYPES = [
   { label: 'Sell Stop',     direction: 'SELL', orderType: 'Sell Stop' },
 ];
 
-const EMPTY = { pair: '', type: 'Forex', direction: 'BUY', orderType: 'Market', entry: '', stopLoss: '', tp1: '', tp2: '', tp3: '', notes: '', status: 'active' };
+const EMPTY = { pair: '', type: 'Forex', direction: 'BUY', orderType: 'Market', entry: '', stopLoss: '', tp1: '', tp2: '', tp3: '', notes: '', status: 'active', autoManage: true };
 
 export default function AdminSignals() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -55,6 +55,10 @@ export default function AdminSignals() {
 
   async function handleActivate(id: number) {
     try { await api.updateSignal(id, { status: 'active' }); load(); } catch {}
+  }
+
+  async function toggleAuto(s: any) {
+    try { await api.updateSignal(s.id, { autoManage: !s.autoManage }); load(); } catch {}
   }
 
   async function handleDelete(id: number) {
@@ -121,10 +125,14 @@ export default function AdminSignals() {
                   <input placeholder="1.1000" value={form.tp3} onChange={e => setForm({ ...form, tp3: e.target.value })} />
                 </div>
               </div>
-              <div className="form-group" style={{ marginBottom: 20 }}>
+              <div className="form-group" style={{ marginBottom: 16 }}>
                 <label>Notes (optional)</label>
                 <input placeholder="e.g. Wait for London open confirmation" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
               </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, cursor: 'pointer', fontSize: '0.86rem', color: '#b0b0b0' }}>
+                <input type="checkbox" checked={form.autoManage} onChange={e => setForm({ ...form, autoManage: e.target.checked })} style={{ accentColor: '#c9a84c', width: 16, height: 16 }} />
+                🤖 Auto-manage with live prices — auto-trigger pending orders and auto-close on SL / TP1 (uncheck to handle this signal manually)
+              </label>
               <button type="submit" className="btn btn-gold" disabled={saving}>{saving ? 'Posting...' : 'Post Signal'}</button>
             </form>
           </div>
@@ -153,6 +161,15 @@ export default function AdminSignals() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {(s.status === 'active' || s.status === 'pending') && (
+                  <button onClick={() => toggleAuto(s)} title="Toggle live-price auto-management (auto-trigger & close)"
+                    style={{ padding: '4px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+                      color: s.autoManage ? '#4caf50' : '#9a9a9a',
+                      background: s.autoManage ? 'rgba(76,175,80,0.12)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${s.autoManage ? 'rgba(76,175,80,0.4)' : 'rgba(255,255,255,0.15)'}` }}>
+                    {s.autoManage ? '🤖 Auto' : '✋ Manual'}
+                  </button>
+                )}
                 {s.status === 'active' && (
                   <>
                     <select value={closing[s.id]?.result || 'win'} onChange={e => setClosing(p => ({ ...p, [s.id]: { ...p[s.id], result: e.target.value } }))}

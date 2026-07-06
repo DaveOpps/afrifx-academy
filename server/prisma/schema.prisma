@@ -153,7 +153,8 @@ model Signal {
   tp1       String
   tp2       String?
   tp3       String?
-  status    String   @default("active")
+  status     String   @default("active")
+  autoManage Boolean  @default(true)
   result    String?
   pips      Float?
   notes     String?
