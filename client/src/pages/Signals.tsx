@@ -123,9 +123,14 @@ export default function Signals() {
                       <span style={{ fontFamily: "'Playfair Display',serif", fontSize: '1.3rem', fontWeight: 800 }}>{s.pair}</span>
                       <span style={{ marginLeft: 8, fontSize: '0.72rem', color: '#9a9a9a', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 20 }}>{s.type}</span>
                     </div>
-                    <span style={{ ...DIRECTION_STYLE[s.direction] || {}, padding: '4px 14px', borderRadius: 20, fontWeight: 700, fontSize: '0.85rem' }}>
-                      {s.direction}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                      <span style={{ ...DIRECTION_STYLE[s.direction] || {}, padding: '4px 14px', borderRadius: 20, fontWeight: 700, fontSize: '0.85rem' }}>
+                        {s.direction}
+                      </span>
+                      {s.orderType && s.orderType !== 'Market' && (
+                        <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#c9a84c', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>⏳ {s.orderType}</span>
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>

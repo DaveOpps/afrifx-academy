@@ -97,14 +97,19 @@ router.get('/latest', requireAuth, async (req, res) => {
 });
 
 // POST /api/signals — admin create
+const ORDER_TYPES = ['Market', 'Buy Limit', 'Sell Limit', 'Buy Stop', 'Sell Stop'];
+
 router.post('/', requireAdmin, async (req, res) => {
-  const { pair, type, direction, entry, stopLoss, tp1, tp2, tp3, notes, status } = req.body;
+  const { pair, type, direction, entry, stopLoss, tp1, tp2, tp3, notes, status, orderType } = req.body;
   if (!pair || !direction || !entry || !stopLoss || !tp1) {
     return res.status(400).json({ error: 'pair, direction, entry, stopLoss and tp1 are required' });
   }
   try {
+    // Normalise the order type, and keep BUY/SELL consistent with pending types
+    const ot = ORDER_TYPES.includes(orderType) ? orderType : 'Market';
+    const dir = ot.startsWith('Buy') ? 'BUY' : ot.startsWith('Sell') ? 'SELL' : direction.toUpperCase();
     const signal = await prisma.signal.create({
-      data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: direction.toUpperCase(), entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: status === 'pending' ? 'pending' : 'active' }
+      data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: dir, orderType: ot, entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: status === 'pending' ? 'pending' : 'active' }
     });
     res.json(signal);
     // Email all active signal subscribers (fire-and-forget) — skip for pending signals not yet triggered

@@ -147,6 +147,7 @@ model Signal {
   pair      String
   type      String   @default("Forex")
   direction String
+  orderType String   @default("Market")
   entry     String
   stopLoss  String
   tp1       String

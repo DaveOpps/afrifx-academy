@@ -3,7 +3,19 @@ import { api } from '../../api';
 import DashboardLayout from '../../components/DashboardLayout';
 
 const TYPES = ['Forex', 'Gold', 'Crypto', 'Indices'];
-const EMPTY = { pair: '', type: 'Forex', direction: 'BUY', entry: '', stopLoss: '', tp1: '', tp2: '', tp3: '', notes: '', status: 'active' };
+
+// Each option carries the resulting BUY/SELL direction plus the order type.
+// "Market" = execute now; the four pending types wait for price to reach entry.
+const ORDER_TYPES = [
+  { label: 'Buy — Market',  direction: 'BUY',  orderType: 'Market' },
+  { label: 'Sell — Market', direction: 'SELL', orderType: 'Market' },
+  { label: 'Buy Limit',     direction: 'BUY',  orderType: 'Buy Limit' },
+  { label: 'Sell Limit',    direction: 'SELL', orderType: 'Sell Limit' },
+  { label: 'Buy Stop',      direction: 'BUY',  orderType: 'Buy Stop' },
+  { label: 'Sell Stop',     direction: 'SELL', orderType: 'Sell Stop' },
+];
+
+const EMPTY = { pair: '', type: 'Forex', direction: 'BUY', orderType: 'Market', entry: '', stopLoss: '', tp1: '', tp2: '', tp3: '', notes: '', status: 'active' };
 
 export default function AdminSignals() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -74,10 +86,11 @@ export default function AdminSignals() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Direction</label>
-                  <select value={form.direction} onChange={e => setForm({ ...form, direction: e.target.value })} style={{ width: '100%', background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px' }}>
-                    <option>BUY</option>
-                    <option>SELL</option>
+                  <label>Order Type</label>
+                  <select value={`${form.direction}|${form.orderType}`}
+                    onChange={e => { const [direction, orderType] = e.target.value.split('|'); setForm({ ...form, direction, orderType }); }}
+                    style={{ width: '100%', background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px' }}>
+                    {ORDER_TYPES.map(o => <option key={o.label} value={`${o.direction}|${o.orderType}`}>{o.label}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
@@ -130,6 +143,7 @@ export default function AdminSignals() {
                 <div style={{ fontSize: '0.75rem', color: '#9a9a9a' }}>{s.type} · {new Date(s.createdAt).toLocaleDateString('en-GB')}</div>
               </div>
               <span style={{ padding: '3px 12px', borderRadius: 20, fontWeight: 700, fontSize: '0.8rem', color: s.direction === 'BUY' ? '#4caf50' : '#ef5350', background: s.direction === 'BUY' ? 'rgba(76,175,80,0.12)' : 'rgba(239,83,80,0.12)' }}>{s.direction}</span>
+              {s.orderType && s.orderType !== 'Market' && <span style={{ padding: '3px 10px', borderRadius: 20, fontWeight: 600, fontSize: '0.72rem', color: '#c9a84c', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)' }}>{s.orderType}</span>}
               <div style={{ flex: 1, display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.82rem' }}>
                 <span>Entry: <b>{s.entry}</b></span>
                 <span>SL: <b style={{ color: '#ef5350' }}>{s.stopLoss}</b></span>
