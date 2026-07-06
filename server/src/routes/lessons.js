@@ -7,7 +7,7 @@ const router = Router();
 router.get('/:id', requireAuth, async (req, res) => {
   const lesson = await prisma.lesson.findUnique({
     where: { id: Number(req.params.id) },
-    include: { module: { include: { course: true, lessons: { orderBy: { order: 'asc' } } } } }
+    include: { module: { include: { course: true, lessons: { orderBy: { order: 'asc' } }, quizzes: true } } }
   });
   if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
   res.json(lesson);
