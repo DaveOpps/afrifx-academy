@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import Navbar from '../components/Navbar';
 
@@ -10,6 +10,8 @@ function ytEmbed(url: string) {
 
 export default function LessonViewer() {
   const { courseId, lessonId } = useParams();
+  const [searchParams] = useSearchParams();
+  const wantQuiz = searchParams.get('quiz') === '1';
   const nav = useNavigate();
   const [lesson, setLesson] = useState<any>(null);
   const [watched, setWatched] = useState<number[]>([]);
@@ -21,6 +23,7 @@ export default function LessonViewer() {
   const [submitText, setSubmitText] = useState<Record<number,string>>({});
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const quizRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true); setQuiz(null); setResult(null); setAnswers({});
@@ -28,9 +31,18 @@ export default function LessonViewer() {
       .then(([l, w, r]) => {
         setLesson(l); setWatched(w); setResources(r);
         api.moduleAssignments(l.module.id).then(setAssignments).catch(() => {});
+        // Deep-linked from the course page's "Take Quiz" button — open it straight away
+        if (wantQuiz && l.module.quizzes?.length) loadQuiz(l.module.quizzes[0].id);
         setLoading(false);
       });
   }, [lessonId, courseId]);
+
+  // Once the quiz is open (via deep-link), scroll it into view so the student can answer
+  useEffect(() => {
+    if (wantQuiz && quiz && quizRef.current) {
+      quizRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [quiz, wantQuiz]);
 
   async function markWatched() {
     if (watched.includes(Number(lessonId))) return;
@@ -151,8 +163,8 @@ export default function LessonViewer() {
           )}
 
           {/* Quiz */}
-          {mod.quizzes?.length > 0 && !nextLesson && (
-            <div className="card" style={{ marginTop: 16 }}>
+          {mod.quizzes?.length > 0 && (!nextLesson || wantQuiz) && (
+            <div ref={quizRef} className="card" style={{ marginTop: 16, scrollMarginTop: 80 }}>
               <h3 style={{ marginBottom: 12, fontWeight: 700 }}>📝 Module Quiz</h3>
               {!quiz ? (
                 <button className="btn btn-gold" onClick={() => loadQuiz(mod.quizzes[0].id)}>Take Quiz</button>
