@@ -23,6 +23,7 @@ import qrRoutes from './routes/qr.js';
 import assignmentRoutes from './routes/assignments.js';
 import fileRoutes from './routes/files.js';
 import paperRoutes from './routes/paper.js';
+import { startSignalEngine } from './utils/signalEngine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -66,4 +67,7 @@ if (existsSync(clientDist)) {
 }
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`AfriFX API running on http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`AfriFX API running on http://localhost:${PORT}`);
+  startSignalEngine();
+});

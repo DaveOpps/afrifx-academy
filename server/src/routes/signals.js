@@ -2,21 +2,9 @@ import { Router } from 'express';
 import { prisma } from '../utils/db.js';
 import { requireAdmin, requireAuth } from '../middleware/auth.js';
 import { sendSignalAlert } from '../utils/email.js';
+import { announceSignal, signalSummary } from '../utils/signalNotify.js';
 
 const router = Router();
-
-// Post a notification-bell announcement for a signal event. Announcements are
-// global (every student sees them; read-state is tracked per user), so this is
-// how a signal reaches everyone's bell. Fire-and-forget — never blocks the API.
-function announceSignal(title, body) {
-  prisma.announcement.create({ data: { title, body, pinned: false } }).catch(() => {});
-}
-
-function signalSummary(s) {
-  const tps = [s.tp1, s.tp2, s.tp3].filter(Boolean).join(' / ');
-  const ot = s.orderType && s.orderType !== 'Market' ? ` ${s.orderType}` : '';
-  return `${s.pair} ${s.direction}${ot} — Entry ${s.entry}, SL ${s.stopLoss}${tps ? `, TP ${tps}` : ''}`;
-}
 
 // GET /api/signals/performance — PUBLIC transparency stats (trust builder)
 router.get('/performance', async (req, res) => {
