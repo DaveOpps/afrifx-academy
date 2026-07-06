@@ -37,17 +37,26 @@ export default function Signals() {
   const [signals, setSignals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch every signal for the chosen market (all statuses) so the status tabs
+  // can show counts and switching tabs is instant. Polls so the list stays in
+  // sync with what admins post / the price engine updates — no manual reload.
   useEffect(() => {
     if (!type) return;
-    setLoading(true);
-    const params = new URLSearchParams();
-    params.set('type', type);
-    params.set('status', status);
-    api.getSignals(params.toString())
-      .then(s => setSignals(s))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [type, status]);
+    let alive = true;
+    const fetchSignals = (showSpinner: boolean) => {
+      if (showSpinner) setLoading(true);
+      api.getSignals(`type=${encodeURIComponent(type)}`)
+        .then(s => { if (alive) setSignals(s); })
+        .catch(() => {})
+        .finally(() => { if (alive && showSpinner) setLoading(false); });
+    };
+    fetchSignals(true);
+    const t = setInterval(() => fetchSignals(false), 20000);
+    return () => { alive = false; clearInterval(t); };
+  }, [type]);
+
+  const visible = signals.filter(s => s.status === status);
+  const countFor = (st: string) => signals.filter(s => s.status === st).length;
 
   function chooseCategory(value: string) {
     setStatus('active');
@@ -97,15 +106,18 @@ export default function Signals() {
 
           {/* Status tabs */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 32, flexWrap: 'wrap' }}>
-            {STATUSES.map(s => (
-              <button key={s.value} onClick={() => setStatus(s.value)}
-                className={`btn btn-sm ${status === s.value ? 'btn-primary' : 'btn-outline'}`}>{s.label}</button>
-            ))}
+            {STATUSES.map(s => {
+              const n = countFor(s.value);
+              return (
+                <button key={s.value} onClick={() => setStatus(s.value)}
+                  className={`btn btn-sm ${status === s.value ? 'btn-primary' : 'btn-outline'}`}>{s.label}{n > 0 ? ` (${n})` : ''}</button>
+              );
+            })}
           </div>
 
           {loading ? (
             <div className="loading-center"><span className="spinner"></span></div>
-          ) : signals.length === 0 ? (
+          ) : visible.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: 48 }}>
               <p style={{ fontSize: '2.5rem', marginBottom: 12 }}>📡</p>
               <h3>No {STATUSES.find(s => s.value === status)?.label.toLowerCase()} signals</h3>
@@ -113,7 +125,7 @@ export default function Signals() {
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 20 }}>
-              {signals.map(s => (
+              {visible.map(s => (
                 <div key={s.id} className="card" style={{ position: 'relative', overflow: 'hidden' }}>
                   {/* Top stripe */}
                   <div style={{ height: 3, background: s.direction === 'BUY' ? '#0ecb81' : '#f6465d', margin: '-24px -24px 20px' }} />
