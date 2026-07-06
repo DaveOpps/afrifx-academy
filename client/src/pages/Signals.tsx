@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import DashboardLayout from '../components/DashboardLayout';
 
@@ -31,6 +31,7 @@ const RESULT_BADGE: Record<string, string> = {
 
 export default function Signals() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const nav = useNavigate();
   const type = searchParams.get('type');
   const [status, setStatus] = useState('active');
   const [signals, setSignals] = useState<any[]>([]);
@@ -53,14 +54,21 @@ export default function Signals() {
     setSearchParams({ type: value });
   }
 
+  // Leave the picker without choosing a market — go back to the dashboard.
+  const exitPicker = () => nav('/dashboard');
+
   const category = CATEGORIES.find(c => c.value === type);
 
   return (
     <DashboardLayout title="Trading Signals" subtitle="Daily Forex, Gold, Crypto and Indices signals from our expert analysts.">
       {!type ? (
         createPortal(
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, padding: 20, overflowY: 'auto' }}>
-            <div className="card" style={{ width: '100%', maxWidth: 480, padding: 32, textAlign: 'center', margin: 'auto' }}>
+          <div onClick={exitPicker} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000, padding: 20, overflowY: 'auto' }}>
+            <div className="card" onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 480, padding: 32, textAlign: 'center', margin: 'auto' }}>
+              <button onClick={exitPicker} aria-label="Back to dashboard" title="Back"
+                style={{ position: 'absolute', top: 14, left: 14, width: 34, height: 34, borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#c9a84c', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
+              <button onClick={exitPicker} aria-label="Close" title="Close"
+                style={{ position: 'absolute', top: 14, right: 14, width: 34, height: 34, borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#9a9a9a', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               <p style={{ fontSize: '2rem', marginBottom: 8 }}>📡</p>
               <h2 style={{ fontWeight: 800, marginBottom: 8 }}>Choose a Market</h2>
               <p style={{ color: '#9a9a9a', fontSize: '0.88rem', marginBottom: 24 }}>Select which signals you'd like to view.</p>
