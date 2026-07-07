@@ -147,7 +147,7 @@ export default function Signals() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                     {[
-                      ['Entry', s.entry],
+                      [s.orderType && s.orderType !== 'Market' ? 'Trigger' : 'Entry', s.entry],
                       ['Stop Loss', s.stopLoss],
                       ['TP 1', s.tp1],
                       ...(s.tp2 ? [['TP 2', s.tp2]] : []),

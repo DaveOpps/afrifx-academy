@@ -109,8 +109,11 @@ router.post('/', requireAdmin, async (req, res) => {
     // Normalise the order type, and keep BUY/SELL consistent with pending types
     const ot = ORDER_TYPES.includes(orderType) ? orderType : 'Market';
     const dir = ot.startsWith('Buy') ? 'BUY' : ot.startsWith('Sell') ? 'SELL' : direction.toUpperCase();
+    // A Market order can't sit pending (nothing to trigger it), so only pending
+    // order types may be posted as pending.
+    const st = (status === 'pending' && ot !== 'Market') ? 'pending' : 'active';
     const signal = await prisma.signal.create({
-      data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: dir, orderType: ot, entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: status === 'pending' ? 'pending' : 'active', autoManage: autoManage !== false }
+      data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: dir, orderType: ot, entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: st, autoManage: autoManage !== false }
     });
     res.json(signal);
     // Bell announcement for everyone

@@ -92,7 +92,7 @@ export default function AdminSignals() {
                 <div className="form-group">
                   <label>Order Type</label>
                   <select value={`${form.direction}|${form.orderType}`}
-                    onChange={e => { const [direction, orderType] = e.target.value.split('|'); setForm({ ...form, direction, orderType }); }}
+                    onChange={e => { const [direction, orderType] = e.target.value.split('|'); setForm({ ...form, direction, orderType, status: orderType === 'Market' ? 'active' : 'pending' }); }}
                     style={{ width: '100%', background: '#1a1a1a', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 14px' }}>
                     {ORDER_TYPES.map(o => <option key={o.label} value={`${o.direction}|${o.orderType}`}>{o.label}</option>)}
                   </select>
@@ -153,7 +153,7 @@ export default function AdminSignals() {
               <span style={{ padding: '3px 12px', borderRadius: 20, fontWeight: 700, fontSize: '0.8rem', color: s.direction === 'BUY' ? '#4caf50' : '#ef5350', background: s.direction === 'BUY' ? 'rgba(76,175,80,0.12)' : 'rgba(239,83,80,0.12)' }}>{s.direction}</span>
               {s.orderType && s.orderType !== 'Market' && <span style={{ padding: '3px 10px', borderRadius: 20, fontWeight: 600, fontSize: '0.72rem', color: '#c9a84c', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)' }}>{s.orderType}</span>}
               <div style={{ flex: 1, display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.82rem' }}>
-                <span>Entry: <b>{s.entry}</b></span>
+                <span>{s.orderType && s.orderType !== 'Market' ? 'Trigger' : 'Entry'}: <b>{s.entry}</b></span>
                 <span>SL: <b style={{ color: '#ef5350' }}>{s.stopLoss}</b></span>
                 <span>TP1: <b style={{ color: '#4caf50' }}>{s.tp1}</b></span>
                 {s.tp2 && <span>TP2: <b style={{ color: '#4caf50' }}>{s.tp2}</b></span>}
