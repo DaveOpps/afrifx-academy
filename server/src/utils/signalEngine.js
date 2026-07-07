@@ -27,7 +27,7 @@ const ALIASES = {
 
 // Map a free-text signal pair (e.g. "EURUSD", "GOLD", "BTC/USD") to a known
 // instrument key, or null if we can't price it.
-function resolveSymbol(pair) {
+export function resolveSymbol(pair) {
   if (!pair) return null;
   const key = String(pair).toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (INSTRUMENTS[key]) return key;
@@ -35,7 +35,7 @@ function resolveSymbol(pair) {
 }
 
 // Has a pending order at `entry` been reached by current price `p`?
-function pendingTriggered(orderType, entry, p) {
+export function pendingTriggered(orderType, entry, p) {
   switch (orderType) {
     case 'Buy Limit':  return p <= entry; // buy on a dip down to entry
     case 'Sell Limit': return p >= entry; // sell on a rally up to entry

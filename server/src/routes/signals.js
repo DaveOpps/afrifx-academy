@@ -3,8 +3,38 @@ import { prisma } from '../utils/db.js';
 import { requireAdmin, requireAuth } from '../middleware/auth.js';
 import { sendSignalAlert } from '../utils/email.js';
 import { announceSignal, signalSummary } from '../utils/signalNotify.js';
+import { getPrice } from '../utils/prices.js';
+import { resolveSymbol, pendingTriggered } from '../utils/signalEngine.js';
 
 const router = Router();
+
+// Reject inconsistent figures: every price must be a positive number and the
+// Stop Loss / Take Profits must sit on the right side of the entry for the
+// direction (BUY: SL below entry, TPs progressively above; SELL: the reverse).
+function validateSignalFigures(dir, entry, stopLoss, tp1, tp2, tp3) {
+  const e = parseFloat(entry), s = parseFloat(stopLoss), t1 = parseFloat(tp1);
+  const has = (v) => v != null && v !== '';
+  const t2 = has(tp2) ? parseFloat(tp2) : null;
+  const t3 = has(tp3) ? parseFloat(tp3) : null;
+  const pos = (v) => Number.isFinite(v) && v > 0;
+  if (!pos(e)) return 'Entry must be a positive number.';
+  if (!pos(s)) return 'Stop Loss must be a positive number.';
+  if (!pos(t1)) return 'TP1 must be a positive number.';
+  if (has(tp2) && !pos(t2)) return 'TP2 must be a positive number.';
+  if (has(tp3) && !pos(t3)) return 'TP3 must be a positive number.';
+
+  const sign = dir === 'BUY' ? 1 : -1;          // profit direction
+  const slSide = dir === 'BUY' ? 'below' : 'above';
+  const tpSide = dir === 'BUY' ? 'above' : 'below';
+  if (sign * (e - s) <= 0) return `For a ${dir}, Stop Loss must be ${slSide} the entry price.`;
+  let prev = e, prevName = 'the entry';
+  for (const [name, tp] of [['TP1', t1], ['TP2', t2], ['TP3', t3]]) {
+    if (tp == null) continue;
+    if (sign * (tp - prev) <= 0) return `For a ${dir}, ${name} must be ${tpSide} ${prevName}.`;
+    prev = tp; prevName = name;
+  }
+  return null;
+}
 
 // GET /api/signals/performance — PUBLIC transparency stats (trust builder)
 router.get('/performance', async (req, res) => {
@@ -109,9 +139,29 @@ router.post('/', requireAdmin, async (req, res) => {
     // Normalise the order type, and keep BUY/SELL consistent with pending types
     const ot = ORDER_TYPES.includes(orderType) ? orderType : 'Market';
     const dir = ot.startsWith('Buy') ? 'BUY' : ot.startsWith('Sell') ? 'SELL' : direction.toUpperCase();
+
+    // Reject inconsistent figures (SL/TP on the wrong side, non-numbers, etc.)
+    const figErr = validateSignalFigures(dir, entry, stopLoss, tp1, tp2, tp3);
+    if (figErr) return res.status(400).json({ error: figErr });
+
     // A Market order can't sit pending (nothing to trigger it), so only pending
     // order types may be posted as pending.
     const st = (status === 'pending' && ot !== 'Market') ? 'pending' : 'active';
+
+    // Live-sensitive: a pending order must be placed on the waiting side of the
+    // market. If it would trigger at the current price, it's on the wrong side.
+    if (st === 'pending') {
+      const sym = resolveSymbol(pair);
+      if (sym) {
+        try {
+          const price = await getPrice(sym);
+          if (pendingTriggered(ot, parseFloat(entry), price)) {
+            return res.status(400).json({ error: `At the live price ${price}, a ${ot} on ${pair.toUpperCase()} would trigger immediately — set the trigger on the correct side (Buy Limit below market, Sell Limit above, Buy Stop above, Sell Stop below).` });
+          }
+        } catch { /* price feed unavailable — skip the live-side check */ }
+      }
+    }
+
     const signal = await prisma.signal.create({
       data: { pair: pair.toUpperCase(), type: type || 'Forex', direction: dir, orderType: ot, entry, stopLoss, tp1, tp2: tp2 || null, tp3: tp3 || null, notes: notes || null, status: st, autoManage: autoManage !== false }
     });

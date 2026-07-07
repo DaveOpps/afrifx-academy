@@ -22,6 +22,7 @@ export default function AdminSignals() {
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [msgErr, setMsgErr] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [closing, setClosing] = useState<Record<number, any>>({});
 
@@ -30,14 +31,14 @@ export default function AdminSignals() {
   useEffect(() => { load(); }, []);
 
   async function handleCreate(e: React.FormEvent) {
-    e.preventDefault(); setMsg(''); setSaving(true);
+    e.preventDefault(); setMsg(''); setMsgErr(false); setSaving(true);
     try {
       await api.createSignal(form);
       setForm({ ...EMPTY });
       setShowForm(false);
       load();
-      setMsg('Signal posted!');
-    } catch (err: any) { setMsg(err.message); }
+      setMsg('Signal posted!'); setMsgErr(false);
+    } catch (err: any) { setMsg(err.message); setMsgErr(true); }
     finally { setSaving(false); }
   }
 
@@ -72,7 +73,7 @@ export default function AdminSignals() {
       subtitle={`${signals.filter(s => s.status === 'active').length} active signals`}
       actions={<button className="btn btn-gold btn-sm" onClick={() => setShowForm(!showForm)}>{showForm ? 'Cancel' : '+ New Signal'}</button>}
     >
-        {msg && <div className="alert alert-success" style={{ marginBottom: 20 }}>{msg}</div>}
+        {msg && <div className={`alert ${msgErr ? 'alert-error' : 'alert-success'}`} style={{ marginBottom: 20 }}>{msg}</div>}
 
         {showForm && (
           <div className="card" style={{ marginBottom: 32 }}>
